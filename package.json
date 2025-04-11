@@ -9,6 +9,7 @@
     ".": "./dist/index.js",
     "./to-extra": "./dist/to-extra.js"
   },
+  "files": ["dist"],
   "scripts": {
     "test": "node --test **/*.test.js",
     "build": "tsc",
