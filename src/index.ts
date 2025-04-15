@@ -3,11 +3,11 @@ interface ArrayIsh<T> {
 	length: number;
 }
 
+export type ExtraIteratorSource<T> = Iterator<T, any, any> | Iterable<T, any, any> | ArrayIsh<T>;
+
 export class ExtraIterator<T> extends Iterator<T, any, any> {
 	// TODO Consider using a lib like `make-iterator` to transform things into iterators
-	static override from<T>(
-		source: Iterator<T, any, any> | Iterable<T, any, any> | ArrayIsh<T>,
-	): ExtraIterator<T> {
+	static override from<T>(source: ExtraIteratorSource<T>): ExtraIterator<T> {
 		if (!(Symbol.iterator in source) && 'length' in source) {
 			return new ExtraIterator(function*() {
 				for (let index = 0; index < source.length; index++) {
@@ -18,31 +18,39 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		return new ExtraIterator(source);
 	}
 
-	static fromKeys<T extends {}>(subject: T): ExtraIterator<keyof T> {
-		return new ExtraIterator(Object.keys(subject) as (keyof T)[]);
-	}
-
-	static fromValues<T extends {}>(subject: T): ExtraIterator<T[keyof T]> {
-		return new ExtraIterator(Object.values(subject) as T[keyof T][]);
-	}
-
-	static fromEntries<T extends {}>(subject: T): ExtraIterator<[keyof T, T[keyof T]]> {
-		return new ExtraIterator(Object.entries(subject) as [keyof T, T[keyof T]][]);
+	static zip<A, B>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>): ExtraIterator<[A, B]>;
+	static zip<A, B, C>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>, c: ExtraIteratorSource<C>): ExtraIterator<[A, B, C]>;
+	static zip<A, B, C, D>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>, c: ExtraIteratorSource<C>, d: ExtraIteratorSource<D>): ExtraIterator<[A, B, C, D]>;
+	static zip<A, B, C, D, E>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>, c: ExtraIteratorSource<C>, d: ExtraIteratorSource<D>, e: ExtraIteratorSource<E>): ExtraIterator<[A, B, C, D, E]>;
+	static zip<A, B, C, D, E, F>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>, c: ExtraIteratorSource<C>, d: ExtraIteratorSource<D>, e: ExtraIteratorSource<E>, f: ExtraIteratorSource<F>): ExtraIterator<[A, B, C, D, E, F]>;
+	static zip<A, B, C, D, E, F, G>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>, c: ExtraIteratorSource<C>, d: ExtraIteratorSource<D>, e: ExtraIteratorSource<E>, f: ExtraIteratorSource<F>, g: ExtraIteratorSource<G>): ExtraIterator<[A, B, C, D, E, F, G]>;
+	static zip<A, B, C, D, E, F, G, H>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>, c: ExtraIteratorSource<C>, d: ExtraIteratorSource<D>, e: ExtraIteratorSource<E>, f: ExtraIteratorSource<F>, g: ExtraIteratorSource<G>, h: ExtraIteratorSource<H>): ExtraIterator<[A, B, C, D, E, F, G, H]>;
+	static zip<T>(...iterables: ExtraIteratorSource<T>[]): ExtraIterator<T[]>;
+	static zip<T>(...iterables: ExtraIteratorSource<T>[]): ExtraIterator<T[]> {
+		return new ExtraIterator(function*() {
+			for (
+				let iterators = iterables.map(iterable => ExtraIterator.from(iterable)),
+					results;
+				results = iterators.map(iterator => iterator.next()),
+				results.every(value => !value.done);
+			) {
+				yield results.map(value => value.value);
+			}
+		}().toArray());
 	}
 
 	static empty<T = any>(): ExtraIterator<T> {
 		return new ExtraIterator([]);
 	}
 
-	static count(max: number): ExtraIterator<number>;
+	static count(): ExtraIterator<number>;
+	static count(end: number): ExtraIterator<number>;
 	static count(start: number, end: number): ExtraIterator<number>;
 	static count(start: number, end: number, interval: number): ExtraIterator<number>;
-	static count(start: number, end?: number, interval?: number): ExtraIterator<number> {
-		if (typeof end === 'undefined') {
-			end = start;
-			start = 0;
-		}
-		interval ??= 1;
+	static count(...args: number[]): ExtraIterator<number> {
+		const [start, end, interval] = args.length === 0 ? [0, Infinity, 1]
+			: args.length === 1 ? [0, args[0]!, 1]
+			: [args[0]!, args[1]!, args[2] ?? 1];
 		return new ExtraIterator(function*() {
 			for (let counter = start; counter < end; counter += interval) {
 				yield counter;
@@ -180,14 +188,14 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 			: this.drop(index).first();
 	}
 
-	appendMany(items: Iterable<T>): ExtraIterator<T> {
+	concat(items: Iterable<T>): ExtraIterator<T> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			yield* this;
 			yield* items;
 		}.call(this));
 	}
 
-	appendOne(item: T): ExtraIterator<T> {
+	append(item: T): ExtraIterator<T> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			yield* this;
 			yield item;
@@ -201,7 +209,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
-	prependOne(item: T): ExtraIterator<T> {
+	prepend(item: T): ExtraIterator<T> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			yield item;
 			yield* this;
@@ -239,10 +247,6 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
-	/**
-	 * Pairs with another iterable to form an iterator of pairs.
-	 * // TODO Expand to support more than 2 iterables
-	 */
 	zip<U>(other: Iterable<U>): ExtraIterator<[T, U]> {
 		return ExtraIterator.from(
 			function*(this: ExtraIterator<T>): Generator<[T, U]> {
@@ -257,15 +261,34 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		);
 	}
 
-	/**
-	 * Transforms from an iterator of pairs into a pair of iterators.
-	 * // TODO Expand to support more than 2 iterables
-	 */
-	unzip(): T extends [infer U, infer V] ? [ExtraIterator<U>, ExtraIterator<V>] : never {
-		return [
-			this.map(value => (value as [T, T])[0]),
-			this.map(value => (value as [T, T])[1]),
-		] as any;
+	interpose<U>(separator: U): ExtraIterator<T|U> {
+		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
+			for (let next = this.next(); !next.done;) {
+				yield next.value;
+				next = this.next();
+				if (!next.done) {
+					yield separator;
+				}
+			}
+		}.call(this));
+	}
+
+	interleave<U>(other: ExtraIteratorSource<U>): ExtraIterator<T|U> {
+		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
+			const otherIterator = ExtraIterator.from(other);
+			for (let next, otherNext;
+				next = this.next(),
+				otherNext = otherIterator.next(),
+				!next.done || !otherNext.done;
+			) {
+				if (!next.done) {
+					yield next.value;
+				}
+				if (!otherNext.done) {
+					yield otherNext.value;
+				}
+			}
+		}.call(this));
 	}
 
 	splice(startIndex: number, deleteCount: number, ...newItems: T[]): ExtraIterator<T> {
@@ -285,8 +308,16 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
-	with(index: number, value: T): ExtraIterator<T> {
-		return this.splice(index, 1, value);
+	defaultIfEmpty(provider: () => T): ExtraIterator<T> {
+		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
+			const result = this.next();
+			if (result.done) {
+				yield provider();
+			} else {
+				yield result.value;
+				yield* this;
+			}
+		}.call(this));
 	}
 
 	collect<U>(collectfn: ((iter: Iterable<T>) => U)): U {
@@ -302,5 +333,13 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 				}
 				return 0;
 			});
+	}
+
+	count(): number {
+		let count = 0;
+		for (let next; next = this.next(), !next.done;) {
+			count++;
+		}
+		return count;
 	}
 }
