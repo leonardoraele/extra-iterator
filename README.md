@@ -1,6 +1,6 @@
 # extra-iterator
 
-> ⚠ Still a work in progress; not ready for production — tests are missing and the documentation is lacking.
+> ⚠ Documentation is still a TODO
 
 ## Install
 
