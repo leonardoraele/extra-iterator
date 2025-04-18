@@ -77,7 +77,7 @@ describe('ExtraIterator', () => {
 	});
 
 	it('should remove duplicate values', () => {
-		const iterator = ExtraIterator.from([1, 2, 2, 3]).uniq();
+		const iterator = ExtraIterator.from([1, 2, 2, 3]).unique();
 		expect(iterator.toArray()).toEqual([1, 2, 3]);
 	});
 

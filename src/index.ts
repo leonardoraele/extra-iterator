@@ -136,14 +136,14 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		return result;
 	}
 
-	uniq(keyProvider: (value: T) => unknown = value => value): ExtraIterator<T> {
+	unique(keyProvider: (value: T) => unknown = value => value): ExtraIterator<T> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			const seen = new Set<unknown>();
 			for (let item; item = this.next(), !item.done;) {
 				const key = keyProvider(item.value);
 				if (!seen.has(key)) {
-					yield item.value;
 					seen.add(key);
+					yield item.value;
 				}
 			}
 		}.call(this));
@@ -341,5 +341,17 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 			count++;
 		}
 		return count;
+	}
+
+	uniqueness(mapper?: (value: T) => unknown): boolean {
+		const seen = new Set<unknown>();
+		for (let next; next = this.next(), !next.done;) {
+			const value = mapper ? mapper(next.value) : next.value;
+			if (seen.has(value)) {
+				return false;
+			}
+			seen.add(value);
+		}
+		return true;
 	}
 }
