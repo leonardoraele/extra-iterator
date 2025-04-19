@@ -144,4 +144,27 @@ describe('ExtraIterator', () => {
 		const sum = iterator.collect(iter => Array.from(iter).reduce((a, b) => a + b, 0));
 		expect(sum).toBe(6);
 	});
+
+	it('should create a chain of responsibility function', () => {
+		const humanizeDuration = ExtraIterator.from<(next: (duration: number) => string, duration: number) => string>([
+			(next, miliseconds) => miliseconds < 1000 ? `${miliseconds} miliseconds` : next(miliseconds / 1000),
+			(next, seconds) => seconds < 60 ? `${seconds} seconds` : next(seconds / 60),
+			(next, minutes) => minutes < 60 ? `${minutes} minutes` : next(minutes / 60),
+			(next, hours) => hours < 24 ? `${hours} hours` : next(hours / 24),
+			(_next, days) => `${days} days`,
+		]).toChainOfResponsibilityFunction<string, [number]>((handler, next, value) => handler(next, value));
+
+		expect(humanizeDuration(500)).toBe('500 miliseconds');
+		expect(humanizeDuration(2000)).toBe('2 seconds');
+		expect(humanizeDuration(120000)).toBe('2 minutes');
+		expect(humanizeDuration(7200000)).toBe('2 hours');
+		expect(humanizeDuration(172800000)).toBe('2 days');
+	});
+
+	it('should throw an error if no handlers are available', () => {
+		const handlers = ExtraIterator.empty();
+		const chain = handlers.toChainOfResponsibilityFunction(next => next());
+
+		expect(() => chain()).toThrow();
+	});
 });

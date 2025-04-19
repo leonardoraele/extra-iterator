@@ -320,6 +320,23 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
+	toChainOfResponsibilityFunction<ResultType = void|Promise<void>, ParamsType extends any[] = []>(
+		invokeHandler: (handler: T, next: (...args: ParamsType) => ResultType, ...args: ParamsType) => ResultType,
+	): (...args: ParamsType) => ResultType {
+		const handlers = this.toArray();
+		return (...initialArgs: ParamsType): ResultType => {
+			const iterator = Iterator.from(handlers);
+			function nextFn(...args: ParamsType): ResultType {
+				const next = iterator.next();
+				if (next.done) {
+					throw new Error('Chain of responsibility exhausted. No more handlers available.');
+				}
+				return invokeHandler(next.value, nextFn, ...args);
+			};
+			return nextFn(...initialArgs);
+		};
+	}
+
 	collect<U>(collectfn: ((iter: Iterable<T>) => U)): U {
 		return collectfn(this);
 	}
