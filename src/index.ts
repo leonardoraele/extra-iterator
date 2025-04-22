@@ -6,6 +6,11 @@ interface ArrayIsh<T> {
 export type ExtraIteratorSource<T> = Iterator<T, any, any> | Iterable<T, any, any> | ArrayIsh<T>;
 
 export class ExtraIterator<T> extends Iterator<T, any, any> {
+
+	// =================================================================================================================
+	// STATIC FUNCTIONS
+	// =================================================================================================================
+
 	// TODO Consider using a lib like `make-iterator` to transform things into iterators
 	static override from<T>(source: ExtraIteratorSource<T>): ExtraIterator<T> {
 		if (!(Symbol.iterator in source) && 'length' in source) {
@@ -25,6 +30,13 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	static zip<A, B, C, D, E, F>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>, c: ExtraIteratorSource<C>, d: ExtraIteratorSource<D>, e: ExtraIteratorSource<E>, f: ExtraIteratorSource<F>): ExtraIterator<[A, B, C, D, E, F]>;
 	static zip<A, B, C, D, E, F, G>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>, c: ExtraIteratorSource<C>, d: ExtraIteratorSource<D>, e: ExtraIteratorSource<E>, f: ExtraIteratorSource<F>, g: ExtraIteratorSource<G>): ExtraIterator<[A, B, C, D, E, F, G]>;
 	static zip<A, B, C, D, E, F, G, H>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>, c: ExtraIteratorSource<C>, d: ExtraIteratorSource<D>, e: ExtraIteratorSource<E>, f: ExtraIteratorSource<F>, g: ExtraIteratorSource<G>, h: ExtraIteratorSource<H>): ExtraIterator<[A, B, C, D, E, F, G, H]>;
+
+	/**
+	 * Creates an iterator that yields arrays containing the values that exist in the same indexes in each of the
+	 * provided iterators.
+	 *
+	 * @example ExtraIterator.zip([1, 2, 3], ['a', 'b', 'c']).toArray() // returns [ [1, 'a'], [2, 'b'], [3, 'c'] ]
+	 */
 	static zip<T>(...iterables: ExtraIteratorSource<T>[]): ExtraIterator<T[]>;
 	static zip<T>(...iterables: ExtraIteratorSource<T>[]): ExtraIterator<T[]> {
 		return new ExtraIterator(function*() {
@@ -39,10 +51,23 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}().toArray());
 	}
 
+	/**
+	 * Creates an iterator that yields no value.
+	 *
+	 * @example ExtraIterator.empty().toArray() // returns []
+	 */
 	static empty<T = any>(): ExtraIterator<T> {
 		return new ExtraIterator([]);
 	}
 
+	/**
+	 * Creates an iterator that yields incrementing numbers, starting from
+	 * `start` (default 0) and ending at `end`. (exclusive)
+	 *
+	 * If `end` is omitted, counts to Infinity.
+	 *
+	 * @example ExtraIterator.count(5).toArray() // returns [0, 1, 2, 3, 4]
+	 */
 	static count(): ExtraIterator<number>;
 	static count(end: number): ExtraIterator<number>;
 	static count(start: number, end: number): ExtraIterator<number>;
@@ -58,6 +83,11 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}());
 	}
 
+	/**
+	 * Creates an iterator that yields the provided value `count` times.
+	 *
+	 * @example ExtraIterator.repeat(3, 'a').toArray() // returns ['a', 'a', 'a']
+	 */
 	static repeat<T>(count: number, value: T): ExtraIterator<T> {
 		return new ExtraIterator(function*() {
 			for (let index = 0; index < count; index++) {
@@ -65,6 +95,10 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 			}
 		}());
 	}
+
+	// =================================================================================================================
+	// PRIVATES
+	// =================================================================================================================
 
 	private constructor(source: Iterator<T, any, any> | Iterable<T, any, any>) {
 		super();
@@ -78,6 +112,10 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	private source: IteratorObject<T, any, any>;
+
+	// =================================================================================================================
+	// OVERRIDES
+	// =================================================================================================================
 
 	override next(value?: any): IteratorResult<T, any> {
 		return this.source.next(value);
@@ -120,22 +158,36 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		return ExtraIterator.from(super.flatMap(callback));
 	}
 
+	// =================================================================================================================
+	// TRANSFORMING FUNCTIONS
+	// -----------------------------------------------------------------------------------------------------------------
+	// These functions transform the iterator somehow and returns a new iterator.
+	// =================================================================================================================
+
+	/**
+	 * Flattens the iterator by one level. If the iterator yields iterables, it will yield their values.
+	 * If the iterator yields non-iterables, it will yield the values as is.
+	 *
+	 * This is equivalent to `flatMap(value => value)`.
+	 *
+	 * @example ExtraIterator.from([[1, 2], [3, 4]]).flatten().toArray() // returns [1, 2, 3, 4]
+	 */
 	flatten(): T extends Iterable<infer U> ? ExtraIterator<U> : never {
 		return this.flatMap(value => value as any) as any;
 	}
 
-	groupBy<K extends string|symbol>(callbackfn: (value: T, index: number) => K): Record<K, T[]> {
-		const result: Record<K, T[]> = Object.create(null);
-		for (let index = 0, next; next = this.next(), !next.done; index++) {
-			const key = callbackfn(next.value, index);
-			if (!result[key]) {
-				result[key] = [];
-			}
-			result[key].push(next.value);
-		}
-		return result;
-	}
-
+	/**
+	 * Creates a new iterator that yields the values of this iterator, but won't yield any duplicates.
+	 *
+	 * @param keyProvider An optional function that returns a key for each value. The keys are used to determine whether
+	 * two values are equal or not. If two values have the same key, only the first one will be yielded. The other is
+	 * ignored.
+	 *
+	 * @example ExtraIteartor.from('determination')
+	 *     .unique()
+	 *     .toArray()
+	 *      // returns ['d', 'e', 't', 'r', 'm', 'i', 'n', 'a', 'o']
+	 */
 	unique(keyProvider: (value: T) => unknown = value => value): ExtraIterator<T> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			const seen = new Set<unknown>();
@@ -149,52 +201,30 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
+	/**
+	 * Creates a new iterator that yields the values of this iterator, but won't yield any null or undefined values.
+	 *
+	 * @example ExtraIterator.from([0, 1, null, 3, undefined, 5])
+	 *    .compact()
+	 *    .toArray()
+	 *    // returns [0, 1, 3, 5]
+	 */
 	compact(): ExtraIterator<Exclude<T, null|undefined>> {
 		const predicate = (value => value !== null && value !== undefined) as
 			(value: T) => value is Exclude<T, null|undefined>;
 		return ExtraIterator.from(this.filter(predicate));
 	}
 
-	withEach(callbackfn: (value: T, index: number) => void): ExtraIterator<T> {
-		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
-			for (let index = 0, next; next = this.next(), !next.done; index++) {
-				callbackfn(next.value, index);
-				yield next.value;
-			}
-		}.call(this));
-	}
-
-	first(): T|undefined {
-		const next = this.next();
-		return next.done ? undefined : next.value;
-	}
-
-	last(): T|undefined {
-		let previousItem = this.next();
-		if (previousItem.done) {
-			return undefined;
-		}
-		for (
-			let currentItem;
-			currentItem = this.next(), !currentItem.done;
-			previousItem = currentItem
-		);
-		return previousItem.value;
-	}
-
-	at(index: number): T|undefined {
-		return index === -1 ? this.last()
-			: index < 0 ? this.take(index).at(0)
-			: this.drop(index).first();
-	}
-
-	concat(items: Iterable<T>): ExtraIterator<T> {
-		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
-			yield* this;
-			yield* items;
-		}.call(this));
-	}
-
+	/**
+	 * Appends a new value to the end of the iterator.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from([1, 2, 3])
+	 *     .append(4)
+	 *     .toArray()
+	 *     // returns [1, 2, 3, 4]
+	 */
 	append(item: T): ExtraIterator<T> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			yield* this;
@@ -202,13 +232,17 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
-	prependMany(items: Iterable<T>): ExtraIterator<T> {
-		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
-			yield* items;
-			yield* this;
-		}.call(this));
-	}
-
+	/**
+	 * Prepends a new value to the beginning of the iterator. The new value will be yielded first, then the rest of this
+	 * iterator will be yielded.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from([1, 2, 3])
+	 *     .prepend(0)
+	 *     .toArray()
+	 *     // returns [0, 1, 2, 3]
+	 */
 	prepend(item: T): ExtraIterator<T> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			yield item;
@@ -216,6 +250,59 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
+	/**
+	 * Concatenates multiple values to the end of this iterator.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from([1, 2, 3])
+	 *     .concat([4, 5, 6])
+	 *     .toArray()
+	 *     // returns [1, 2, 3, 4, 5, 6]
+	 */
+	concat(items: Iterable<T>): ExtraIterator<T> {
+		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
+			yield* this;
+			yield* items;
+		}.call(this));
+	}
+
+	/**
+	 * Concatenates multiple values to the start of this iterator.
+	 *
+	 * The order of the values is preserved. This means the first element yielded by the returning iterator will be the
+	 * first element of the `items` param; and the first element of this iterator will be yielded after the last element
+	 * of the `items` param.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from([4, 5, 6])
+	 *     .prependMany([1, 2, 3])
+	 *     .toArray()
+	 *     // returns [1, 2, 3, 4, 5, 6]
+	 */
+	prependMany(items: Iterable<T>): ExtraIterator<T> {
+		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
+			yield* items;
+			yield* this;
+		}.call(this));
+	}
+
+	/**
+	 * Creates a new iterator that invokes the provided callback function over each element of this iterator and yields
+	 * the elements for which the callback returns `true`, only for as long as the callback returns `true`.
+	 *
+	 * This is similar to {@link filter}, except iteration stops once the callback returns `false` for the first time.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from(['Alice', 'Antony', 'Charlie', 'Ashley'])
+	 *     .takeWhile(name => name[0] === 'A')
+	 *     .toArray()
+	 *     // returns ['Alice', 'Antony']
+	 *
+	 * // ℹ Note that, in the example above, `filter()` would have returned `['Alice', 'Antony', 'Ashley']` instead.
+	 */
 	takeWhile(predicate: (value: T, index: number) => boolean): ExtraIterator<T> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			for (let index = 0, next; next = this.next(), !next.done; index++) {
@@ -227,6 +314,20 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
+	/**
+	 * Creates a new iterator that invokes the provided callback function over each element of this iterator and skips
+	 * the elements for which the callback returns `true`, but only for as long as the callback returns `true`.
+	 *
+	 * Once the callback function returns `false`, it will no longer be called. The iterator yields the element that
+	 * caused the callback to return `false`, and well as the subsequent elements.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from(['Alice', 'Antony', 'Charlie', 'Ashley'])
+	 *    .dropWhile(name => name[0] === 'A')
+	 *    .toArray()
+	 *    // returns ['Charlie', 'Ashley']
+	 */
 	dropWhile(predicate: (value: T, index: number) => boolean): ExtraIterator<T> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			for (let index = 0, next; next = this.next(), !next.done; index++) {
@@ -239,6 +340,16 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
+	/**
+	 * Groups the elements in this iterator into arrays of fixed size.
+	 * The last array might be smaller than the others if the number of elements in this iterator is not divisible by
+	 * the provided `size` param.
+	 *
+	 * @example ExtraIterator.from([1, 2, 3, 4, 5, 6, 7])
+	 *     .chunk(3)
+	 *     .toArray()
+	 *     // returns [[1, 2, 3], [4, 5, 6], [7]]
+	 */
 	chunk(size: number): ExtraIterator<T[]> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			for (let next; next = this.next(), !next.done;) {
@@ -247,6 +358,18 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
+	/**
+	 * Creates a new iterator that iterates on this iterator and the proviuded other iterator, yielding arrays of pairs
+	 * of elements from this iterator and the other.
+	 *
+	 * The elements in this iterator are the first elements of the pairs, and the elements in the other iterator are the
+	 * second elements of the pairs.
+	 *
+	 * @example ExtraIterator.from([1, 2, 3])
+	 *     .zip(['a', 'b', 'c'])
+	 *     .toArray()
+	 *     // returns [[1, 'a'], [2, 'b'], [3, 'c']]
+	 */
 	zip<U>(other: Iterable<U>): ExtraIterator<[T, U]> {
 		return ExtraIterator.from(
 			function*(this: ExtraIterator<T>): Generator<[T, U]> {
@@ -261,6 +384,17 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		);
 	}
 
+	/**
+	 * Creates a new iterator that yields the values of this iterator interposed by the provided separator. i.e. The
+	 * separator is inserted between each pair of subsequent elements of this iterator.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from([1, 2, 3, 4])
+	 *     .interpose('a')
+	 *     .toArray()
+	 *     // returns [1, 'a', 2, 'a', 3, 'a', 4]
+	 */
 	interpose<U>(separator: U): ExtraIterator<T|U> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			for (let next = this.next(); !next.done;) {
@@ -273,6 +407,17 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
+	/**
+	 * Creates a new iterator that yields the values of this iterator and the values of the provided iterator
+	 * interleaved (alternating). The elements of this iterator always come before the elements of the other iterator.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from([1, 2, 3])
+	 *     .interleave(['a', 'b', 'c'])
+	 *     .toArray()
+	 *     // returns [1, 'a', 2, 'b', 3, 'c']
+	 */
 	interleave<U>(other: ExtraIteratorSource<U>): ExtraIterator<T|U> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			const otherIterator = ExtraIterator.from(other);
@@ -291,6 +436,20 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
+	/**
+	 * Replaces some elements of this iterator with new values.
+	 *
+	 * @param startIndex The index of the first element to be replaced.
+	 * @param deleteCount The number of elements to be replaced.
+	 * @param newItems The new elements to be inserted.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from([1, 2, 3, 4])
+	 *     .splice(1, 2, 5, 6)
+	 *     .toArray()
+	 *     // returns [1, 5, 6, 4]
+	 */
 	splice(startIndex: number, deleteCount: number, ...newItems: T[]): ExtraIterator<T> {
 		if (startIndex < 0) {
 			return ExtraIterator.from(this.toArray()
@@ -308,6 +467,9 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
+	/**
+	 * Returns an iterator the provided element if this iterator is empty; otherwise, it returns this iterator.
+	 */
 	defaultIfEmpty(provider: () => T): ExtraIterator<T> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			const result = this.next();
@@ -318,6 +480,72 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 				yield* this;
 			}
 		}.call(this));
+	}
+
+	// =================================================================================================================
+	// AGGREGATING FUNCTIONS
+	// -----------------------------------------------------------------------------------------------------------------
+	// These functions consume the iterator and return a new value.
+	// =================================================================================================================
+
+	/**
+	 * Returns the first element of the iterator, or `undefined` if the iterator is empty.
+	 */
+	first(): T|undefined {
+		const next = this.next();
+		return next.done ? undefined : next.value;
+	}
+
+	/**
+	 * Consumes the iteratror and returns the last value yielded.
+	 *
+	 * Returns `undefined` if the iterator is empty.
+	 */
+	last(): T|undefined {
+		let previousItem = this.next();
+		if (previousItem.done) {
+			return undefined;
+		}
+		for (
+			let currentItem;
+			currentItem = this.next(), !currentItem.done;
+			previousItem = currentItem
+		);
+		return previousItem.value;
+	}
+
+	/**
+	 * Consumes the iterator and returns the value at the provided index.
+	 */
+	at(index: number): T|undefined {
+		return index === -1 ? this.last()
+			: index < 0 ? this.take(index).at(0)
+			: this.drop(index).first();
+	}
+
+	/**
+	 * Groups the elements in this iterator into separate arrays and returns an object containing all the groups.
+	 *
+	 * The returned object is composed of keys generated by calling the provided callback function on each element of
+	 * this iterator, and the value for each key is an array containing all the elements that were assigned to that key.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from([1, 2, 3, 4, 5])
+	 *  .groupBy(value => value % 2 === 0 ? 'even' : 'odd')
+	 *  .toArray()
+	 *  // returns { even: [2, 4], odd: [1, 3, 5] }
+	 */
+	groupBy<K extends string|symbol>(callbackfn: (value: T, index: number) => K): Record<K, T[]> {
+		const result: Record<K, T[]> = Object.create(null);
+		for (let index = 0, next; next = this.next(), !next.done; index++) {
+			const key = callbackfn(next.value, index);
+			if (!result[key]) {
+				result[key] = [];
+			}
+			result[key].push(next.value);
+		}
+		return result;
 	}
 
 	toChainOfResponsibilityFunction<ResultType = void|Promise<void>, ParamsType extends any[] = []>(
@@ -337,6 +565,17 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		};
 	}
 
+	/**
+	 * Consumes the iterator and returns a value determined by calling the provided function using the iterator as
+	 * argument.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from(Object.entries({ a: 1, b: 2 }))
+	 *     .map(([key, value]) => ['_' + key, value * 2])
+	 *     .collect(Object.fromEntries)
+	 *     // returns { _a: 2, _b: 4 }
+	 */
 	collect<U>(collectfn: ((iter: Iterable<T>) => U)): U {
 		return collectfn(this);
 	}
@@ -352,6 +591,9 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 			});
 	}
 
+	/**
+	 * Consumes the iterator and returns the number of elements it contained.
+	 */
 	count(): number {
 		let count = 0;
 		for (let next; next = this.next(), !next.done;) {
@@ -360,6 +602,16 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		return count;
 	}
 
+	/**
+	 * Consumes the iterator and returns a boolean indicating whether all elements in the iterator were unique.
+	 *
+	 * If it returns false, then the iterator had at least one duplicated element.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from([1, 2, 3]).uniqueness() // returns true
+	 * ExtraIterator.from([1, 2, 3, 1]).uniqueness() // returns false
+	 */
 	uniqueness(mapper?: (value: T) => unknown): boolean {
 		const seen = new Set<unknown>();
 		for (let next; next = this.next(), !next.done;) {
@@ -370,5 +622,28 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 			seen.add(value);
 		}
 		return true;
+	}
+
+	// =================================================================================================================
+	// MISC FUNCTIONS
+	// =================================================================================================================
+
+	/**
+	 * Lazily executes a function over each element of this iterator as the values are iterated.
+	 *
+	 * This method does not change the output values of the iterator.
+	 *
+	 * This method is equivalent to {@link map} when the callback function returns the iterated value.
+	 *
+	 * This is similar to {@link forEach}, except the callback function is not executed immediately (instead, it is
+	 * executed when the iterator is iterated), and this method returns the iterator itself.
+	 */
+	withEach(callbackfn: (value: T, index: number) => void): ExtraIterator<T> {
+		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
+			for (let index = 0, next; next = this.next(), !next.done; index++) {
+				callbackfn(next.value, index);
+				yield next.value;
+			}
+		}.call(this));
 	}
 }
