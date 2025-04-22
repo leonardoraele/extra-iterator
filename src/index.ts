@@ -408,6 +408,32 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
+	 * Creates a new iterator that yields the values of this iterator interposed by separator values produced by calling
+	 * the callback function provided as argument.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from([2, 3, 5, 8])
+	 *     .interposeWith((lhs, rhs) => (lhs + rhs) / 2)
+	 *     .toArray()
+	 *     // returns [2, 2.5, 3, 4, 5, 6.5, 8]
+	 */
+	interposeWith<U>(separatorProvider: (lhs: T, rhs: T, index: number) => U): ExtraIterator<T|U> {
+		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
+			for (let previous = this.next(), next: IteratorResult<T>, index = 0;
+				!previous.done;
+				previous = next, index++
+			) {
+				yield previous.value;
+				next = this.next();
+				if (!next.done) {
+					yield separatorProvider(previous.value, next.value, index);
+				}
+			}
+		}.call(this));
+	}
+
+	/**
 	 * Creates a new iterator that yields the values of this iterator and the values of the provided iterator
 	 * interleaved (alternating). The elements of this iterator always come before the elements of the other iterator.
 	 *

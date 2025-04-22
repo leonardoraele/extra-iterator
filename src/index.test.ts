@@ -71,6 +71,11 @@ describe('ExtraIterator', () => {
 		expect(iterator.toArray()).toEqual([1, 0, 2, 0, 3]);
 	});
 
+	it('should interpose with a function', () => {
+		const iterator = ExtraIterator.from([1, 2, 3, 5, 8, 13]).interposeWith((a, b) => (a + b) / 2);
+		expect(iterator.toArray()).toEqual([1, 1.5, 2, 2.5, 3, 4, 5, 6.5, 8, 10.5, 13]);
+	});
+
 	it('should chunk values into groups of a given size', () => {
 		const iterator = ExtraIterator.from([1, 2, 3, 4]).chunk(2);
 		expect(iterator.toArray()).toEqual([[1, 2], [3, 4]]);
