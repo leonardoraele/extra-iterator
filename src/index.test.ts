@@ -32,8 +32,7 @@ describe('ExtraIterator', () => {
 	});
 
 	it('should yield random values', () => {
-		const iterator = ExtraIterator.random().take(5);
-		const values = iterator.toArray();
+		const values = ExtraIterator.random().take(5).toArray();
 		expect(values.length).toBe(5);
 		expect(values.every(value => typeof value === 'number')).toBe(true);
 	});
@@ -183,5 +182,10 @@ describe('ExtraIterator', () => {
 		const chain = handlers.toChainOfResponsibilityFunction(next => next());
 
 		expect(() => chain()).toThrow();
+	});
+
+	it('should repeat values', () => {
+		const iterator = ExtraIterator.from([1, 2, 3]).loop(3);
+		expect(iterator.toArray()).toEqual([1, 2, 3, 1, 2, 3, 1, 2, 3]);
 	});
 });

@@ -105,7 +105,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 				globalThis.crypto.getRandomValues(buffer);
 				yield* new Float64Array(buffer);
 			}())
-			.looping();
+			.loop();
 	}
 
 	// =================================================================================================================
@@ -521,13 +521,19 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
-	 * Creates a new iterator that yields the values of this iterator infinitely. The returning iterator ends only if
-	 * this iterator is empty.
+	 * Creates a new iterator that yields the values of this iterator and then reiterates over the same values and
+	 * yields each of them again, a number of times determined by the {@param times} parameter. If omitted, loops
+	 * infinitely.
+	 *
+	 * @example ExtraIterator.from([1, 2, 3]).loop(3).toArray() // returns [1, 2, 3, 1, 2, 3, 1, 2, 3]
 	 */
-	looping(): ExtraIterator<T> {
+	loop(times: number = Infinity): ExtraIterator<T> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			const values = this.toArray();
-			while (values.length) {
+			if (values.length === 0) {
+				return;
+			}
+			for (let i = 0; i < times; i++) {
 				yield* values;
 			}
 		}.call(this));
