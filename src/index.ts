@@ -32,8 +32,8 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	static zip<A, B, C, D, E, F, G, H>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>, c: ExtraIteratorSource<C>, d: ExtraIteratorSource<D>, e: ExtraIteratorSource<E>, f: ExtraIteratorSource<F>, g: ExtraIteratorSource<G>, h: ExtraIteratorSource<H>): ExtraIterator<[A, B, C, D, E, F, G, H]>;
 
 	/**
-	 * Creates an iterator that yields arrays containing the values that exist in the same indexes in each of the
-	 * provided iterators.
+	 * Creates a new iterator that iterates over all the provided iterators simultaneously. The returned iterator yields
+	 * arrays containing the values yielded by each of the provided iterators.
 	 *
 	 * @example ExtraIterator.zip([1, 2, 3], ['a', 'b', 'c']).toArray() // returns [ [1, 'a'], [2, 'b'], [3, 'c'] ]
 	 */
@@ -61,39 +61,51 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
-	 * Creates an iterator that yields incrementing numbers, starting from
-	 * `start` (default 0) and ending at `end`. (exclusive)
+	 * Creates an iterator that yields incrementing numbers.
 	 *
-	 * If `end` is omitted, counts to Infinity.
+	 * > ⚠ This iterator is infinite. Use {@link take} method if you want a specific number of values.
 	 *
-	 * @example ExtraIterator.count(5).toArray() // returns [0, 1, 2, 3, 4]
+	 * @example ExtraIterator.count().take(5).toArray() // returns [0, 1, 2, 3, 4]
 	 */
-	static count(): ExtraIterator<number>;
-	static count(end: number): ExtraIterator<number>;
-	static count(start: number, end: number): ExtraIterator<number>;
-	static count(start: number, end: number, interval: number): ExtraIterator<number>;
-	static count(...args: number[]): ExtraIterator<number> {
-		const [start, end, interval] = args.length === 0 ? [0, Infinity, 1]
-			: args.length === 1 ? [0, args[0]!, 1]
-			: [args[0]!, args[1]!, args[2] ?? 1];
+	static count({ start = 0, interval = 1 } = {}): ExtraIterator<number> {
 		return new ExtraIterator(function*() {
-			for (let counter = start; counter < end; counter += interval) {
-				yield counter;
+			while (true) {
+				yield start
+				start += interval;
 			}
 		}());
 	}
 
 	/**
-	 * Creates an iterator that yields the provided value `count` times.
+	 * Creates an iterator that repeatedly yields the provided value.
+	 *
+	 * > ⚠ This iterator is infinite. Use {@link take} method if you want a specific number of values.
 	 *
 	 * @example ExtraIterator.repeat(3, 'a').toArray() // returns ['a', 'a', 'a']
 	 */
-	static repeat<T>(count: number, value: T): ExtraIterator<T> {
+	static repeat<T>(value: T): ExtraIterator<T> {
 		return new ExtraIterator(function*() {
-			for (let index = 0; index < count; index++) {
+			while (true) {
 				yield value;
 			}
 		}());
+	}
+
+	/**
+	 * Generates random cryptographically strong random numbers.
+	 *
+	 * > ⚠ This iterator is infinite. Use {@link take} method if you want a specific number of values.
+	 *
+	 * @param param0
+	 * @returns
+	 */
+	static random({ bufferSize = 1024 } = {}): ExtraIterator<number> {
+		const buffer = new Uint8Array(bufferSize);
+		return new ExtraIterator(function*() {
+				globalThis.crypto.getRandomValues(buffer);
+				yield* new Float64Array(buffer);
+			}())
+			.looping();
 	}
 
 	// =================================================================================================================
@@ -504,6 +516,19 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 			} else {
 				yield result.value;
 				yield* this;
+			}
+		}.call(this));
+	}
+
+	/**
+	 * Creates a new iterator that yields the values of this iterator infinitely. The returning iterator ends only if
+	 * this iterator is empty.
+	 */
+	looping(): ExtraIterator<T> {
+		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
+			const values = this.toArray();
+			while (values.length) {
+				yield* values;
 			}
 		}.call(this));
 	}

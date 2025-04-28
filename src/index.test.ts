@@ -17,13 +17,25 @@ describe('ExtraIterator', () => {
 	});
 
 	it('should count from 0 to a given number', () => {
-		const iterator = ExtraIterator.count(5);
+		const iterator = ExtraIterator.count().take(5);
 		expect(iterator.toArray()).toEqual([0, 1, 2, 3, 4]);
 	});
 
+	it('should count in 2s, starting from 5', () => {
+		const iterator = ExtraIterator.count({ start: 5, interval: 2 }).take(5);
+		expect(iterator.toArray()).toEqual([5, 7, 9, 11, 13]);
+	});
+
 	it('should repeat a value a given number of times', () => {
-		const iterator = ExtraIterator.repeat(3, 'x');
+		const iterator = ExtraIterator.repeat('x').take(3);
 		expect(iterator.toArray()).toEqual(['x', 'x', 'x']);
+	});
+
+	it('should yield random values', () => {
+		const iterator = ExtraIterator.random().take(5);
+		const values = iterator.toArray();
+		expect(values.length).toBe(5);
+		expect(values.every(value => typeof value === 'number')).toBe(true);
 	});
 
 	it('should filter values based on a predicate', () => {
