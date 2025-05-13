@@ -155,6 +155,27 @@ describe('ExtraIterator', () => {
 		});
 	});
 
+	it('should convert to a Map', () => {
+		const iterator = ExtraIterator.from([{ key: 'a', value: 1 }, { key: 'b', value: 2 }, { key: 'a', value: 3 }]);
+		const map = iterator.toMap(item => item.key);
+		expect(map).toBeInstanceOf(Map);
+		expect(map).toEqual(new Map([
+			['a', [{ key: 'a', value: 1 }, { key: 'a', value: 3 }]],
+			['b', [{ key: 'b', value: 2 }]],
+		]));
+	});
+
+	it('should convert to a Set', () => {
+		const iterator = ExtraIterator.from([3, 1, 3, 2, 2, 1, 3]);
+		const set = iterator.toSet();
+		expect(set).toBeInstanceOf(Set);
+		expect(set.size).toBe(3);
+		expect(set.has(1)).toBe(true);
+		expect(set.has(2)).toBe(true);
+		expect(set.has(3)).toBe(true);
+		expect(set).toEqual(new Set([3, 1, 2]));
+	});
+
 	it('should collect values using a custom collector', () => {
 		const iterator = ExtraIterator.from([1, 2, 3]);
 		const sum = iterator.collect(iter => Array.from(iter).reduce((a, b) => a + b, 0));
