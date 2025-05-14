@@ -182,6 +182,21 @@ describe('ExtraIterator', () => {
 		expect(sum).toBe(6);
 	});
 
+	describe('sum', () => {
+		it('should sum numbers', () => {
+			const iter = ExtraIterator.from([5, 8, 13]);
+			expect(iter.sum()).toBe(26);
+		});
+		it('should sum the numeric value of objects', () => {
+			const iter = ExtraIterator.from([
+				{ valueOf: () => 5 },
+				{ valueOf: () => 8 },
+				{ valueOf: () => 13 },
+			]);
+			expect(iter.sum()).toBe(26);
+		});
+	});
+
 	it('should create a chain of responsibility function', () => {
 		const humanizeDuration = ExtraIterator.from<(next: (duration: number) => string, duration: number) => string>([
 			(next, miliseconds) => miliseconds < 1000 ? `${miliseconds} miliseconds` : next(miliseconds / 1000),

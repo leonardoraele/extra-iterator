@@ -673,6 +673,15 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
+	 * Sums the numeric value of all elements in the iterator and returns the total.
+	 *
+	 * @example ExtraIterator.from([5, 8, 13]).sum() // returns 26
+	 */
+	sum(): number {
+		return this.reduce((a, b) => a + Number(b), 0);
+	}
+
+	/**
 	 * Consumes the iterator and returns the number of elements it contained.
 	 *
 	 * @example ExtraIterator.from([1, 2, 3, 4]).count() // returns 4
