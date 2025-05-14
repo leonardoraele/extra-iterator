@@ -3,7 +3,7 @@
   "description": "An extension of the Iterator class with additional utility helper functions.",
   "author": "Leonardo Raele <leonardoraele@gmail.com>",
   "license": "MIT",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "exports": {
     ".": "./dist/index.js",
