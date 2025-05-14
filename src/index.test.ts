@@ -197,6 +197,15 @@ describe('ExtraIterator', () => {
 		});
 	});
 
+	describe('chunkWith', () => {
+		it('should chunk using a comparer function', () => {
+			const result = ExtraIterator.from([1, 1, 2, 3, 3, 3, 2, 2])
+				.chunkWith((lhs, rhs) => lhs === rhs)
+				.toArray();
+			expect(result).toEqual([[1, 1], [2], [3, 3, 3], [2, 2]]);
+		});
+	});
+
 	it('should create a chain of responsibility function', () => {
 		const humanizeDuration = ExtraIterator.from<(next: (duration: number) => string, duration: number) => string>([
 			(next, miliseconds) => miliseconds < 1000 ? `${miliseconds} miliseconds` : next(miliseconds / 1000),

@@ -371,6 +371,45 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
+	 * Groups the elements in this iterator into groups of variable size.
+	 *
+	 * This method calls the provided predicate function for each pair of adjacent elements in this iterator. It should
+	 * return `true` if the elements should belong to the same group, or `false` if they should belong to different
+	 * groups.
+	 *
+	 * The resulting iterator yields arrays of elements that belong to the same group.
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from([1, 1, 2, 3, 3, 3, 2, 2])
+	 *     .chunkWith((lhs, rhs) => lhs === rhs)
+	 *     .toArray()
+	 *     // returns [[1, 1], [2], [3, 3, 3], [2, 2]]
+	 */
+	chunkWith(predicate: (lhs: T, rhs: T, index: number, chunk: [T, ...T[]]) => boolean): ExtraIterator<T[]> {
+		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
+			const first = this.next();
+			if (first.done) {
+				return;
+			}
+			let chunk: [T, ...T[]] = [first.value];
+			for (
+				let left = first, right: IteratorResult<T>, index = 0;
+				right = this.next(), !right.done;
+				left = right, index++
+			) {
+				if (predicate(left.value, right.value, index, chunk)) {
+					chunk.push(left.value);
+				} else {
+					yield chunk;
+					chunk = [right.value];
+				}
+			}
+			yield chunk;
+		}.call(this));
+	}
+
+	/**
 	 * Creates a new iterator that iterates on this iterator and the proviuded other iterator, yielding arrays of pairs
 	 * of elements from this iterator and the other.
 	 *
@@ -704,7 +743,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 * ExtraIterator.from([1, 2, 3]).uniqueness() // returns true
 	 * ExtraIterator.from([1, 2, 3, 1]).uniqueness() // returns false
 	 */
-	uniqueness(mapper?: (value: T) => unknown): boolean {
+	testUnique(mapper?: (value: T) => unknown): boolean {
 		const seen = new Set<unknown>();
 		for (let next; next = this.next(), !next.done;) {
 			const value = mapper ? mapper(next.value) : next.value;
