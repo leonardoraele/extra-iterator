@@ -185,7 +185,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 * @example ExtraIterator.from([[1, 2], [3, 4]]).flatten().toArray() // returns [1, 2, 3, 4]
 	 */
 	flatten(): T extends Iterable<infer U> ? ExtraIterator<U> : never {
-		return this.flatMap(value => value as any) as any;
+		return this.flatMap(value => Array.isArray(value) ? new ExtraIterator(value).flatten() : [value]) as any;
 	}
 
 	/**

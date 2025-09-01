@@ -58,8 +58,8 @@ describe('ExtraIterator', () => {
 	});
 
 	it('should flatten nested iterables', () => {
-		const iterator = ExtraIterator.from([[1, 2], [3, 4]]).flatten();
-		expect(iterator.toArray()).toEqual([1, 2, 3, 4]);
+		const iterator = ExtraIterator.from([0, [1, [2, [3, 4]]], [5, [6]], 7]).flatten();
+		expect(iterator.toArray()).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
 	});
 
 	it('should return the first value', () => {
