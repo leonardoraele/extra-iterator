@@ -237,7 +237,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 *     .toArray()
 	 *     // returns [1, 2, 3, 4]
 	 */
-	append(item: T): ExtraIterator<T> {
+	append<U>(item: U): ExtraIterator<T | U> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			yield* this;
 			yield item;
@@ -255,7 +255,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 *     .toArray()
 	 *     // returns [0, 1, 2, 3]
 	 */
-	prepend(item: T): ExtraIterator<T> {
+	prepend<U>(item: U): ExtraIterator<T | U> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			yield item;
 			yield* this;
@@ -272,7 +272,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 *     .toArray()
 	 *     // returns [1, 2, 3, 4, 5, 6]
 	 */
-	concat(items: Iterable<T>): ExtraIterator<T> {
+	concat<U>(items: Iterable<U>): ExtraIterator<T | U> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			yield* this;
 			yield* items;
@@ -293,7 +293,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 *     .toArray()
 	 *     // returns [1, 2, 3, 4, 5, 6]
 	 */
-	prependMany(items: Iterable<T>): ExtraIterator<T> {
+	prependMany<U>(items: Iterable<U>): ExtraIterator<T | U> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			yield* items;
 			yield* this;
