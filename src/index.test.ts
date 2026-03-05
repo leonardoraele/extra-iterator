@@ -32,9 +32,9 @@ describe('ExtraIterator', () => {
 	});
 
 	it('should yield random values', () => {
-		const values = ExtraIterator.random().take(5).toArray();
-		expect(values.length).toBe(5);
-		expect(values.every(value => typeof value === 'number')).toBe(true);
+		const values = ExtraIterator.random().take(10000).toArray();
+		expect(values.length).toBe(10000);
+		expect(values.every(value => typeof value === 'number' && value >= 0 && value < 255)).toBe(true);
 	});
 
 	it('should filter values based on a predicate', () => {

@@ -123,18 +123,16 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
-	 * Generates random cryptographically strong random numbers.
+	 * Generates an infinite sequence of cryptographically strong random bytes using `crypto.getRandomValues`. Each
+	 * yielded value is a number in between 0 and 255 (inclusive).
 	 *
 	 * > ⚠ This iterator is infinite. Use {@link take} method if you want a specific number of values.
-	 *
-	 * @param param0
-	 * @returns
 	 */
 	static random({ bufferSize = 1024 } = {}): ExtraIterator<number> {
 		const buffer = new Uint8Array(bufferSize);
 		return new ExtraIterator(function*() {
 				globalThis.crypto.getRandomValues(buffer);
-				yield* new Float64Array(buffer);
+				yield* new Uint8Array(buffer);
 			}())
 			.loop();
 	}
