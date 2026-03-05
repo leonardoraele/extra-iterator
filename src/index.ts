@@ -664,16 +664,8 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 *  .toArray()
 	 *  // returns { even: [2, 4], odd: [1, 3, 5] }
 	 */
-	groupBy<K extends string|symbol>(callbackfn: (value: T, index: number) => K): Record<K, T[]> {
-		const result: Record<K, T[]> = Object.create(null);
-		for (let index = 0, next; next = this.next(), !next.done; index++) {
-			const key = callbackfn(next.value, index);
-			if (!result[key]) {
-				result[key] = [];
-			}
-			result[key].push(next.value);
-		}
-		return result;
+	groupBy<K extends string|symbol>(callbackfn: (value: T, index: number) => K): Partial<Record<K, T[]>> {
+		return this.collect(items => Object.groupBy(items, callbackfn));
 	}
 
 	/**
