@@ -678,17 +678,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 * This method is similart to {@link groupBy}, but the returned object is a Map instead of a plain object.
 	 */
 	toMap<K extends string|symbol>(callbackfn: (value: T, index: number) => K): Map<K, T[]> {
-		const result = new Map<K, T[]>();
-		for (let index = 0, next; next = this.next(), !next.done; index++) {
-			const key = callbackfn(next.value, index);
-			const array = result.get(key);
-			if (!array) {
-				result.set(key, [next.value]);
-			} else {
-				array.push(next.value);
-			}
-		}
-		return result;
+		return this.collect(items => Map.groupBy(items, callbackfn));
 	}
 
 	/**
