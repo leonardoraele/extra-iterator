@@ -77,6 +77,37 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
+	 * Creates an iterator that yields numbers in a "from-to" range. (exclusive)
+	 *
+	 * Chain the returned iterator into the {@link append} method to create an inclusive range. (or {@link prepend} if
+	 * the range is decremental)
+	 *
+	 * The third argument is an optional step that defines the increment (or decrement) between each yielded number.
+	 *
+	 * @example
+	 * ExtraIterator.range(5, 10).toArray() // returns [5, 6, 7, 8, 9]
+	 * ExtraIterator.range(5, 10).append(10).toArray() // returns [5, 6, 7, 8, 9, 10]
+	 * ExtraIterator.range(1, 10, 2).toArray() // returns [1, 3, 5, 7, 9]
+	 * ExtraIterator.range(0, 1, 0.25).toArray() // returns [0, 0.25, 0.5, 0.75]
+	 * ExtraIterator.range(10, 0, -2).toArray() // returns [10, 8, 6, 4, 2]
+	 */
+	static range(start: number, end: number, step: number = 1): ExtraIterator<number> {
+		return ExtraIterator.from(function*() {
+			if (Math.abs(step) < Number.EPSILON) {
+				throw new Error('Failed to create range. Cause: Range step cannot be 0.');
+			} else if (step > 0) {
+				for (let i = start; i < end; i += step) {
+					yield i;
+				}
+			} else {
+				for (let i = start; i > end; i += step) {
+					yield i;
+				}
+			}
+		}());
+	}
+
+	/**
 	 * Creates an iterator that repeatedly yields the provided value.
 	 *
 	 * > ⚠ This iterator is infinite. Use {@link take} method if you want a specific number of values.

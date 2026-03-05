@@ -233,4 +233,12 @@ describe('ExtraIterator', () => {
 		const iterator = ExtraIterator.from([1, 2, 3]).loop(3);
 		expect(iterator.toArray()).toEqual([1, 2, 3, 1, 2, 3, 1, 2, 3]);
 	});
+
+	it('should iterate over ranges', () => {
+		expect(ExtraIterator.range(5, 10).toArray()).toEqual([5, 6, 7, 8, 9]);
+		expect(ExtraIterator.range(5, 10).append(10).toArray()).toEqual([5, 6, 7, 8, 9, 10]);
+		expect(ExtraIterator.range(1, 10, 2).toArray()).toEqual([1, 3, 5, 7, 9]);
+		expect(ExtraIterator.range(0, 1, 0.25).toArray()).toEqual([0, 0.25, 0.5, 0.75]);
+		expect(ExtraIterator.range(10, 0, -2).toArray()).toEqual([10, 8, 6, 4, 2]);
+	});
 });
