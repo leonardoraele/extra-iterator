@@ -685,9 +685,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 * Creates a set containing all the values yielded by this iterator.
 	 */
 	toSet(): Set<T> {
-		const result = new Set<T>();
-		this.forEach(value => result.add(value));
-		return result;
+		return new Set(this);
 	}
 
 	toChainOfResponsibilityFunction<ResultType = void|Promise<void>, ParamsType extends any[] = []>(
