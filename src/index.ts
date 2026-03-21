@@ -86,21 +86,28 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 *
 	 * @example
 	 * ExtraIterator.range(5, 10).toArray() // returns [5, 6, 7, 8, 9]
-	 * ExtraIterator.range(5, 10).append(10).toArray() // returns [5, 6, 7, 8, 9, 10]
-	 * ExtraIterator.range(1, 10, 2).toArray() // returns [1, 3, 5, 7, 9]
-	 * ExtraIterator.range(0, 1, 0.25).toArray() // returns [0, 0.25, 0.5, 0.75]
-	 * ExtraIterator.range(10, 0, -2).toArray() // returns [10, 8, 6, 4, 2]
+	 * ExtraIterator.range(5, 10, { inclusive: true }).toArray() // returns [5, 6, 7, 8, 9, 10]
+	 *
+	 * // Counting down:
+	 * ExtraIterator.range(10, 0).toArray() // return [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+	 * ExtraIterator.range(10, 0, { inclusive: true }).toArray() // return [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+	 *
+	 * // Custom stepping value:
+	 * ExtraIterator.range(1, 10, { step: 2 }).toArray() // returns [1, 3, 5, 7, 9]
+	 * ExtraIterator.range(0, 1, { step: 0.25 }).toArray() // returns [0, 0.25, 0.5, 0.75]
+	 * ExtraIterator.range(10, 0, { step: 2 }).toArray() // returns [10, 8, 6, 4, 2]
 	 */
-	static range(start: number, end: number, step: number = 1): ExtraIterator<number> {
+	static range(start: number, end: number, { inclusive = false, step = 1 } = {}): ExtraIterator<number> {
 		return ExtraIterator.from(function*() {
-			if (Math.abs(step) < Number.EPSILON) {
+			step = Math.abs(step);
+			if (step < Number.EPSILON) {
 				throw new Error('Failed to create range. Cause: Range step cannot be 0.');
-			} else if (step > 0) {
-				for (let i = start; i < end; i += step) {
+			} else if (end > start) {
+				for (let i = start; inclusive ? i <= end : i < end; i += step) {
 					yield i;
 				}
 			} else {
-				for (let i = start; i > end; i += step) {
+				for (let i = start; inclusive ? i >= end : i > end; i -= step) {
 					yield i;
 				}
 			}

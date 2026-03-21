@@ -2,7 +2,7 @@ import { ExtraIterator } from './index';
 import { describe, it } from 'node:test';
 import { expect } from 'expect';
 
-describe('ExtraIterator', () => {
+describe(ExtraIterator.name, () => {
 	it('should create an ExtraIterator from an array', () => {
 		const array = [1, 2, 3];
 		const iterator = ExtraIterator.from(array);
@@ -234,11 +234,25 @@ describe('ExtraIterator', () => {
 		expect(iterator.toArray()).toEqual([1, 2, 3, 1, 2, 3, 1, 2, 3]);
 	});
 
-	it('should iterate over ranges', () => {
-		expect(ExtraIterator.range(5, 10).toArray()).toEqual([5, 6, 7, 8, 9]);
-		expect(ExtraIterator.range(5, 10).append(10).toArray()).toEqual([5, 6, 7, 8, 9, 10]);
-		expect(ExtraIterator.range(1, 10, 2).toArray()).toEqual([1, 3, 5, 7, 9]);
-		expect(ExtraIterator.range(0, 1, 0.25).toArray()).toEqual([0, 0.25, 0.5, 0.75]);
-		expect(ExtraIterator.range(10, 0, -2).toArray()).toEqual([10, 8, 6, 4, 2]);
+	describe(ExtraIterator.range.name, () => {
+		it('should iterate over ranges', () => {
+			expect(ExtraIterator.range(5, 10).toArray()).toEqual([5, 6, 7, 8, 9]);
+			expect(ExtraIterator.range(5, 10).append(10).toArray()).toEqual([5, 6, 7, 8, 9, 10]);
+		});
+		it('should iterate over ranges with steps', () => {
+			expect(ExtraIterator.range(1, 10, { step: 2 }).toArray()).toEqual([1, 3, 5, 7, 9]);
+			expect(ExtraIterator.range(0, 1, { step: 0.25 }).toArray()).toEqual([0, 0.25, 0.5, 0.75]);
+			expect(ExtraIterator.range(10, 0, { step: 2 }).toArray()).toEqual([10, 8, 6, 4, 2]);
+			expect(ExtraIterator.range(10, 0, { step: -2 }).toArray()).toEqual([10, 8, 6, 4, 2]);
+		});
+		it('should iterate over inclusive ranges', () => {
+			expect(ExtraIterator.range(1, 10, { inclusive: true }).toArray()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+			expect(ExtraIterator.range(1, 10, { inclusive: true, step: 2 }).toArray()).toEqual([1, 3, 5, 7, 9]);
+			expect(ExtraIterator.range(0, 1, { inclusive: true, step: 0.25 }).toArray()).toEqual([0, 0.25, 0.5, 0.75, 1]);
+			expect(ExtraIterator.range(10, 0, { inclusive: true, step: -2 }).toArray()).toEqual([10, 8, 6, 4, 2, 0]);
+		});
+		it('should throw an error if the step is 0', () => {
+			expect(() => ExtraIterator.range(0, 10, { step: 0 }).toArray()).toThrow();
+		});
 	});
 });
