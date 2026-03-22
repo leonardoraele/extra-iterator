@@ -8,12 +8,25 @@ describe(ExtraIterator.name, () => {
 		const iterator = ExtraIterator.from(array);
 		expect(iterator.toArray()).toEqual(array);
 	});
+	it('should create an ExtraIterator from an "array-like" object', () => {
+		const arrayLike = { 0: 'a', 1: 'b', 2: 'c', length: 3 };
+		const iterator = ExtraIterator.from(arrayLike);
+		expect(iterator.toArray()).toEqual(['a', 'b', 'c']);
+	});
 
 	it('should zip two iterators', () => {
 		const a = ExtraIterator.from([1, 2, 3]);
 		const b = ExtraIterator.from(['a', 'b', 'c']);
-		const zipped = ExtraIterator.zip(a, b);
+		const zipped = a.zip(b);
 		expect(zipped.toArray()).toEqual([[1, 'a'], [2, 'b'], [3, 'c']]);
+	});
+
+	it('should zip three iterators', () => {
+		const a = ExtraIterator.from([1, 2, 3]);
+		const b = ExtraIterator.from(['a', 'b', 'c']);
+		const c = ExtraIterator.from([true, false, true]);
+		const zipped = ExtraIterator.zip(a, b, c);
+		expect(zipped.toArray()).toEqual([[1, 'a', true], [2, 'b', false], [3, 'c', true]]);
 	});
 
 	it('should count from 0 to a given number', () => {
@@ -52,6 +65,11 @@ describe(ExtraIterator.name, () => {
 		expect(iterator.toArray()).toEqual([1, 2]);
 	});
 
+	it('should take the last values of the sequence', () => {
+		const iterator = ExtraIterator.from([1, 2, 3, 4]).take(-2);
+		expect(iterator.toArray()).toEqual([3, 4]);
+	});
+
 	it('should drop a given number of values', () => {
 		const iterator = ExtraIterator.from([1, 2, 3, 4]).drop(2);
 		expect(iterator.toArray()).toEqual([3, 4]);
@@ -67,9 +85,15 @@ describe(ExtraIterator.name, () => {
 		expect(iterator.first()).toBe(1);
 	});
 
-	it('should return the last value', () => {
-		const iterator = ExtraIterator.from([1, 2, 3]);
-		expect(iterator.last()).toBe(3);
+	describe(ExtraIterator.prototype.last.name, () => {
+		it('should return the last value if the iterator is not empty', () => {
+			const iterator = ExtraIterator.from([1, 2, 3]);
+			expect(iterator.last()).toBe(3);
+		});
+		it('should return undefined if the iterator is empty', () => {
+			const iterator = ExtraIterator.empty<number>();
+			expect(iterator.last()).toBeUndefined();
+		});
 	});
 
 	it('should return a value at a specific index', () => {
@@ -114,6 +138,11 @@ describe(ExtraIterator.name, () => {
 		expect(iterator.toArray()).toEqual([1, 2, 3]);
 	});
 
+	it('should prepend multiple values to the iterator', () => {
+		const iterator = ExtraIterator.from([4, 5, 6]).prependAll([1, 2, 3]);
+		expect(iterator.toArray()).toEqual([1, 2, 3, 4, 5, 6]);
+	});
+
 	it('should append a value to the iterator', () => {
 		const iterator = ExtraIterator.from([1, 2]).append(3);
 		expect(iterator.toArray()).toEqual([1, 2, 3]);
@@ -141,9 +170,21 @@ describe(ExtraIterator.name, () => {
 		expect(iterator.toArray()).toEqual([1, 5, 6, 4]);
 	});
 
-	it('should provide a default value if the iterator is empty', () => {
-		const iterator = ExtraIterator.empty<number>().defaultIfEmpty(() => 42);
-		expect(iterator.toArray()).toEqual([42]);
+	it('should splice values from the end of the iterator', () => {
+		const iterator = ExtraIterator.from([1, 2, 3, 4]).splice(-3, 2, 5, 6);
+		expect(iterator.toArray()).toEqual([1, 5, 6, 4]);
+	});
+
+	describe('defaultIfEmpty', () => {
+		it('should provide a default value if the iterator is empty', () => {
+			const iterator = ExtraIterator.empty<number>().defaultIfEmpty(() => 42);
+			expect(iterator.toArray()).toEqual([42]);
+		});
+
+		it('should relay the iterator itself if it is not empty', () => {
+			const iterator = ExtraIterator.from([1, 2, 3]).defaultIfEmpty(() => 42);
+			expect(iterator.toArray()).toEqual([1, 2, 3]);
+		});
 	});
 
 	it('should group values by a key', () => {
@@ -204,6 +245,16 @@ describe(ExtraIterator.name, () => {
 				.toArray();
 			expect(result).toEqual([[1, 1], [2], [3, 3, 3], [2, 2]]);
 		});
+		it('should chunk using a key selector function', () => {
+			const result = ExtraIterator.from(['apple', 'apricot', 'banana', 'avocado'])
+				.chunkWith((lhs, rhs) => lhs[0] === rhs[0])
+				.toArray();
+			expect(result).toEqual([['apple', 'apricot'], ['banana'], ['avocado']]);
+		});
+		it('should build an empty iterator for an empty iterator', () => {
+			const result = ExtraIterator.from([]).chunkWith((lhs, rhs) => lhs === rhs).toArray();
+			expect(result).toEqual([]);
+		});
 	});
 
 	it('should create a chain of responsibility function', () => {
@@ -229,9 +280,18 @@ describe(ExtraIterator.name, () => {
 		expect(() => chain()).toThrow();
 	});
 
-	it('should repeat values', () => {
-		const iterator = ExtraIterator.from([1, 2, 3]).loop(3);
-		expect(iterator.toArray()).toEqual([1, 2, 3, 1, 2, 3, 1, 2, 3]);
+	describe(ExtraIterator.prototype.loop.name, () => {
+		it('should repeat values', () => {
+			const iterator = ExtraIterator.from([1, 2, 3]).loop(3);
+			expect(iterator.toArray()).toEqual([1, 2, 3, 1, 2, 3, 1, 2, 3]);
+		});
+		it('should yield an empty iterator if the count is equal to or lower than 0', () => {
+			expect(ExtraIterator.from([1, 2, 3]).loop(0).toArray()).toEqual([]);
+			expect(ExtraIterator.from([1, 2, 3]).loop(-1).toArray()).toEqual([]);
+			expect(ExtraIterator.from([1, 2, 3]).loop(-3).toArray()).toEqual([]);
+			expect(ExtraIterator.from([1, 2, 3]).loop(-4).toArray()).toEqual([]);
+			expect(ExtraIterator.from([1, 2, 3]).loop(-99999).toArray()).toEqual([]);
+		});
 	});
 
 	describe(ExtraIterator.range.name, () => {
@@ -253,6 +313,50 @@ describe(ExtraIterator.name, () => {
 		});
 		it('should throw an error if the step is 0', () => {
 			expect(() => ExtraIterator.range(0, 10, { step: 0 }).toArray()).toThrow();
+		});
+	});
+
+	it('should count the number of elements in the iterator', () => {
+		expect(ExtraIterator.from([1, 2, 3]).count()).toBe(3);
+		expect(ExtraIterator.empty().count()).toBe(0);
+	});
+
+	describe(ExtraIterator.prototype.testUnique.name, () => {
+		it('should return true if all values are unique', () => {
+			expect(ExtraIterator.from([1, 2, 3]).testUnique()).toBe(true);
+		});
+		it('should return false if there are duplicate values', () => {
+			expect(ExtraIterator.from([1, 2, 2, 3]).testUnique()).toBe(false);
+		});
+		it('should return true for an empty iterator', () => {
+			expect(ExtraIterator.empty().testUnique()).toBe(true);
+		});
+	});
+
+	describe(ExtraIterator.prototype.withEach.name, () => {
+		it('should perform a side effect for each value', () => {
+			const sideEffects: number[] = [];
+			const iterator = ExtraIterator.from([1, 2, 3]).withEach(x => void sideEffects.push(x));
+			expect(iterator.toArray()).toEqual([1, 2, 3]);
+			expect(sideEffects).toEqual([1, 2, 3]);
+		});
+
+		it('should not perform side effects if the iterator is not consumed', () => {
+			const sideEffects: number[] = [];
+			ExtraIterator.from([1, 2, 3]).withEach(x => void sideEffects.push(x));
+			expect(sideEffects).toEqual([]);
+		});
+
+		it('should perform side effects even if the iterator is only partially consumed', () => {
+			const sideEffects: number[] = [];
+			const iterator = ExtraIterator.from([1, 2, 3]).withEach(x => void sideEffects.push(x));
+			iterator.next();
+			expect(sideEffects).toEqual([1]);
+		});
+
+		it('should perform side effects on objects', () => {
+			const iterator = ExtraIterator.from([{ value: 1 }, { value: 2 }, { value: 3 }]).withEach(obj => obj.value *= 2);
+			expect(iterator.toArray()).toEqual([{ value: 2 }, { value: 4 }, { value: 6 }]);
 		});
 	});
 });

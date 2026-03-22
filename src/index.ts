@@ -325,11 +325,11 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 * @example
 	 *
 	 * ExtraIterator.from([4, 5, 6])
-	 *     .prependMany([1, 2, 3])
+	 *     .prependAll([1, 2, 3])
 	 *     .toArray()
 	 *     // returns [1, 2, 3, 4, 5, 6]
 	 */
-	prependMany<U>(items: Iterable<U>): ExtraIterator<T | U> {
+	prependAll<U>(items: Iterable<U>): ExtraIterator<T | U> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			yield* items;
 			yield* this;
@@ -409,9 +409,9 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	/**
 	 * Groups the elements in this iterator into groups of variable size.
 	 *
-	 * This method calls the provided predicate function for each pair of adjacent elements in this iterator. It should
-	 * return `true` if the elements should belong to the same group, or `false` if they should belong to different
-	 * groups.
+	 * This method calls the provided predicate function for each pair of adjacent elements in this iterator. The
+	 * function should return `true` if the elements should belong to the same group, or `false` if they should belong
+	 * to different groups.
 	 *
 	 * The resulting iterator yields arrays of elements that belong to the same group.
 	 *
@@ -435,7 +435,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 				left = right, index++
 			) {
 				if (predicate(left.value, right.value, index, chunk)) {
-					chunk.push(left.value);
+					chunk.push(right.value);
 				} else {
 					yield chunk;
 					chunk = [right.value];
@@ -565,8 +565,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 */
 	splice(startIndex: number, deleteCount: number, ...newItems: T[]): ExtraIterator<T> {
 		if (startIndex < 0) {
-			return ExtraIterator.from(this.toArray()
-				.toSpliced(startIndex, deleteCount, ...newItems));
+			return ExtraIterator.from(this.toArray().toSpliced(startIndex, deleteCount, ...newItems));
 		}
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			for (let index = 0, next; next = this.next(), !next.done; index++) {
@@ -581,7 +580,8 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
-	 * Returns an iterator the provided element if this iterator is empty; otherwise, it returns this iterator.
+	 * If this iterator is empty, returns an iterator with the provided element as its only element; otherwise, it
+	 * returns a copy of this iterator.
 	 */
 	defaultIfEmpty(provider: () => T): ExtraIterator<T> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
@@ -605,9 +605,6 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	loop(times: number = Infinity): ExtraIterator<T> {
 		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
 			const values = this.toArray();
-			if (values.length === 0) {
-				return;
-			}
 			for (let i = 0; i < times; i++) {
 				yield* values;
 			}
@@ -756,8 +753,8 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 *
 	 * @example
 	 *
-	 * ExtraIterator.from([1, 2, 3]).uniqueness() // returns true
-	 * ExtraIterator.from([1, 2, 3, 1]).uniqueness() // returns false
+	 * ExtraIterator.from([1, 2, 3]).testUnique() // returns true
+	 * ExtraIterator.from([1, 2, 3, 1]).testUnique() // returns false
 	 */
 	testUnique(mapper?: (value: T) => unknown): boolean {
 		const seen = new Set<unknown>();
