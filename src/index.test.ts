@@ -44,9 +44,15 @@ describe(ExtraIterator.name, () => {
 		expect(iterator.toArray()).toEqual(['x', 'x', 'x']);
 	});
 
-	it('should yield random values', () => {
+	it('should yield random numbers', () => {
 		const values = ExtraIterator.random().take(10000).toArray();
 		expect(values.length).toBe(10000);
+		expect(values.every(value => typeof value === 'number' && value >= 0 && value < 1)).toBe(true);
+	});
+
+	it('should yield random bytes', () => {
+		const values = ExtraIterator.randomBytes({ chunkSize: 1024 }).take(1).map(chunk => new Uint8Array(chunk)).flatten().toArray();
+		expect(values.length).toBe(1024);
 		expect(values.every(value => typeof value === 'number' && value >= 0 && value < 256)).toBe(true);
 	});
 

@@ -5,6 +5,33 @@ interface ArrayIsh<T> {
 
 export type ExtraIteratorSource<T> = Iterator<T, any, any> | Iterable<T, any, any> | ArrayIsh<T>;
 
+/**
+ * An extended iterator class that provides additional chainable utility methods for working with iterables.
+ *
+ * @template T The type of values yielded by this iterator.
+ *
+ * @example
+ * // Creating an iterator from an array
+ * const iter = ExtraIterator.from([1, 2, 3, 4, 5]);
+ *
+ * @example
+ * // Creating a sequence of ancestors of a given element
+ * ExtraIterator.from(function*() {
+ *
+ * }()).toArray();
+ * ExtraIterator.from([1, 2, 3, 4, 5])
+ *   .filter(n => n % 2 === 0)
+ *   .map(n => n * 2)
+ *   .toArray()
+ *   // returns [4, 8]
+ *
+ * @example
+ * // Using static factory methods
+ * ExtraIterator.range(1, 5)
+ *   .map(n => n * n)
+ *   .toArray()
+ *   // returns [1, 4, 9, 16]
+ */
 export class ExtraIterator<T> extends Iterator<T, any, any> {
 
 	// =================================================================================================================
@@ -129,16 +156,38 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
-	 * Generates an infinite sequence of cryptographically strong random bytes using `crypto.getRandomValues`. Each
-	 * yielded value is a number in between 0 and 255 (inclusive).
+	 * Generates an infinite sequence of random numbers between 0 and 1 (exclusive) using `Math.random` or another
+	 * specified random number generator.
 	 *
 	 * > ⚠ This iterator is infinite. Use {@link take} method if you want a specific number of values.
 	 */
-	static random({ bufferSize = 1024 } = {}): ExtraIterator<number> {
-		const buffer = new Uint8Array(bufferSize);
+	static random(rng = Math.random): ExtraIterator<number> {
+		return ExtraIterator.from(function*() {
+			while (true) {
+				yield rng();
+			}
+		}());
+	}
+
+	/**
+	 * Generates an infinite sequence of cryptographically strong random bytes using `crypto.getRandomValues`, in
+	 * chunks of `chunkSize` bytes.
+	 *
+	 * By default, this method reuses the same `ArrayBuffer` instance for each chunk, refilling it with new random
+	 * values at each iteration, so you should not keep references to the yielded buffers. Set `reuseBuffer` to `false`
+	 * if you want this method to yield copies of the buffer instead.
+	 *
+	 * If you want a flat sequence of individual byte values instead of chunks, you can chain the iterator returned by
+	 * this method with the {@link flatten} method. The resulting iterator will contain interger values from 0 to 255
+	 * (inclusive).
+	 *
+	 * > ⚠ This iterator is infinite. Use {@link take} method if you want a specific number of values.
+	 */
+	static randomBytes({ chunkSize = 1024, reuseBuffer = true } = {}): ExtraIterator<ArrayBuffer> {
+		const bytes = new Uint8Array(chunkSize);
 		return new ExtraIterator(function*() {
-				globalThis.crypto.getRandomValues(buffer);
-				yield* new Uint8Array(buffer);
+				globalThis.crypto.getRandomValues(bytes);
+				yield reuseBuffer ? bytes.buffer : new Uint8Array(bytes).buffer;
 			}())
 			.loop();
 	}
