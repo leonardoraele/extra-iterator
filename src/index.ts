@@ -11,7 +11,6 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	// STATIC FUNCTIONS
 	// =================================================================================================================
 
-	// TODO Consider using a lib like `make-iterator` to transform things into iterators
 	static override from<T>(source: ExtraIteratorSource<T>): ExtraIterator<T> {
 		if (!(Symbol.iterator in source) && 'length' in source) {
 			return new ExtraIterator(function*() {
