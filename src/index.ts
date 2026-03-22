@@ -87,6 +87,15 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
+	 * Creates an iterator that yields a single value.
+	 *
+	 * @example ExtraIterator.single(42).toArray() // returns [42]
+	 */
+	static single<T>(value: T): ExtraIterator<T> {
+		return new ExtraIterator([value]);
+	}
+
+	/**
 	 * Creates an iterator that yields incrementing numbers.
 	 *
 	 * > ⚠ This iterator is infinite. Use {@link take} method if you want a specific number of values.
@@ -273,7 +282,13 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 * @example ExtraIterator.from([[1, 2], [3, 4]]).flatten().toArray() // returns [1, 2, 3, 4]
 	 */
 	flatten(): T extends Iterable<infer U> ? ExtraIterator<U> : never {
-		return this.flatMap(value => Array.isArray(value) ? new ExtraIterator(value).flatten() : [value]) as any;
+		return this.flatMap(value =>
+			typeof value === 'object'
+			&& value !== null
+			&& Symbol.iterator in value
+				? new ExtraIterator(value as Iterable<unknown>).flatten()
+				: [value]
+		) as any;
 	}
 
 	/**

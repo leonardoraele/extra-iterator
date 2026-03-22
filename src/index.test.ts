@@ -53,7 +53,7 @@ describe(ExtraIterator.name, () => {
 	it('should yield random bytes', () => {
 		const values = ExtraIterator.randomBytes({ chunkSize: 1024 }).take(1).map(chunk => new Uint8Array(chunk)).flatten().toArray();
 		expect(values.length).toBe(1024);
-		expect(values.every(value => typeof value === 'number' && value >= 0 && value < 256)).toBe(true);
+		expect(values.every(value => typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 255)).toBe(true);
 	});
 
 	it('should filter values based on a predicate', () => {
@@ -89,6 +89,11 @@ describe(ExtraIterator.name, () => {
 	it('should return the first value', () => {
 		const iterator = ExtraIterator.from([1, 2, 3]);
 		expect(iterator.first()).toBe(1);
+	});
+
+	it('should have a single value', () => {
+		const iterator = ExtraIterator.single(42);
+		expect(iterator.first()).toBe(42);
 	});
 
 	describe(ExtraIterator.prototype.last.name, () => {
