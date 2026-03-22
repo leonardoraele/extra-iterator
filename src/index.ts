@@ -181,18 +181,20 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	override take(limit: number): ExtraIterator<T> {
 		return limit >= 0
 			? ExtraIterator.from(super.take(limit))
-			: ExtraIterator.from(this.takeLast(-limit));
+			: this.takeLast(-limit);
 	}
 
-	private takeLast(count: number): T[] {
-		const result: T[] = [];
-		for (let item; item = this.next(), !item.done;) {
-			result.push(item.value);
-			if (result.length > count) {
-				result.shift();
-			}
+	private takeLast(count: number): ExtraIterator<T> {
+		const ringbuffer: T[] = new Array(count);
+		let index = 0;
+		for (let item; item = this.next(), !item.done; index = (index + 1) % count) {
+			ringbuffer[index] = item.value;
 		}
-		return result;
+		return ExtraIterator.from(function*() {
+			for (let i = index; i < count + index; i++) {
+				yield ringbuffer[i % count]!;
+			}
+		}());
 	}
 
 	override drop(count: number): ExtraIterator<T> {
@@ -201,7 +203,9 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 			: ExtraIterator.from(this.toArray().toSpliced(count, -count));
 	}
 
-	override flatMap<U>(callback: (value: T, index: number) => Iterator<U, unknown, undefined> | Iterable<U, unknown, undefined>): ExtraIterator<U> {
+	override flatMap<U>(
+		callback: (value: T, index: number) => Iterator<U, unknown, undefined> | Iterable<U, unknown, undefined>,
+	): ExtraIterator<U> {
 		return ExtraIterator.from(super.flatMap(callback));
 	}
 
