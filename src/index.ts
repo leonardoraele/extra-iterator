@@ -16,9 +16,6 @@ export type ExtraIteratorSource<T> = Iterator<T, any, any> | Iterable<T, any, an
  *
  * @example
  * // Creating a sequence of ancestors of a given element
- * ExtraIterator.from(function*() {
- *
- * }()).toArray();
  * ExtraIterator.from([1, 2, 3, 4, 5])
  *   .filter(n => n % 2 === 0)
  *   .map(n => n * 2)
