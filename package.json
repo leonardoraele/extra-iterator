@@ -13,9 +13,11 @@
     "dist"
   ],
   "scripts": {
-    "test": "run-s test:types test:unit",
+    "test": "run-p test:*",
     "test:types": "tsc --noEmit",
     "test:unit": "node --import=tsx --test **/*.test.ts",
+    "coverage": "run-s build coverage:test",
+    "coverage:test": "node --import=tsx --test --experimental-test-coverage",
     "build": "tsc",
     "prebuild": "rimraf dist",
     "prepack": "run-s test build"
