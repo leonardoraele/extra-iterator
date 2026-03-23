@@ -1,9 +1,28 @@
-interface ArrayIsh<T> {
-	[index: number]: T;
-	length: number;
-}
+/**
+ * A type that represents all the possible sources that can be used to create an `ExtraIterator`.
+ *
+ * @remarks
+ *
+ * This includes any object that is either an `Iterator`, an `Iterable`, or an "array-like" object (i.e., an object that
+ * has a `length` property that is a `number` and numerically indexed elements).
+ *
+ * @template T The type of the values yielded by the iterator; or the type of the elements of the array or array-like
+ * object.
+ */
+export type ExtraIteratorSource<T> = Iterator<T, any, any> | Iterable<T, any, any> | ArrayLike<T>;
 
-export type ExtraIteratorSource<T> = Iterator<T, any, any> | Iterable<T, any, any> | ArrayIsh<T>;
+/**
+ * Utility type that flattens nested iterables into an `ExtraIterator` or non-iterable type parameter.
+ * @template T The type of the values yielded by the original iterator.
+ * @returns A new type that represents the flattened version of the original iterator. If `T` is an iterable, it will be
+ * recursively flattened; otherwise, it returns `ExtraIterator<T>`.
+ *
+ * @example
+ *
+ * FlattenedExtraIterator<number[][]>; // results in `ExtraIterator<number>`
+ */
+export type FlattenedExtraIterator<T>
+	= T extends Iterable<infer U> ? FlattenedExtraIterator<U> : ExtraIterator<T>;
 
 /**
  * An extended iterator class that provides additional chainable utility methods for working with iterables.
@@ -35,6 +54,20 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	// STATIC FUNCTIONS
 	// =================================================================================================================
 
+	/**
+	 * Creates a new `ExtraIterator` from an iterable, iterator, or array-like object.
+	 *
+	 * @param source The source to create the iterator from. This can be any object that is either an `Iterator`, an
+	 * `Iterable`, or an array-like object (i.e., has a `length` property and numerically indexed elements).
+	 * @returns A new `ExtraIterator` instance.
+	 * @template T The type of the elements of the `source` parameter.
+	 * @group Static methods
+	 *
+	 * @example
+	 *
+	 * // Creating an iterator from an array
+	 * ExtraIterator.from([1, 2, 3]).toArray() // returns [1, 2, 3]
+	 */
 	static override from<T>(source: ExtraIteratorSource<T>): ExtraIterator<T> {
 		if (!(Symbol.iterator in source) && 'length' in source) {
 			return new ExtraIterator(function*() {
@@ -58,7 +91,15 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 * Creates a new iterator that iterates over all the provided iterators simultaneously. The returned iterator yields
 	 * arrays containing the values yielded by each of the provided iterators.
 	 *
-	 * @example ExtraIterator.zip([1, 2, 3], ['a', 'b', 'c']).toArray() // returns [ [1, 'a'], [2, 'b'], [3, 'c'] ]
+	 * @param iterables Several iterables or array-like objects to iterate over.
+	 * @returns An iterator that iterates over all the provided iterables simultaneously. For each iteration, it yields
+	 * an array with the elements of each iterable at the corresponding position.
+	 * @template T The type of values yielded by the provided iterables.
+	 * @group Static methods
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.zip([1, 2, 3], ['a', 'b', 'c']).toArray() // returns [ [1, 'a'], [2, 'b'], [3, 'c'] ]
 	 */
 	static zip<T>(...iterables: ExtraIteratorSource<T>[]): ExtraIterator<T[]>;
 	static zip<T>(...iterables: ExtraIteratorSource<T>[]): ExtraIterator<T[]> {
@@ -77,6 +118,10 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	/**
 	 * Creates an iterator that yields no value.
 	 *
+	 * @returns An iterator that yields no value.
+	 * @template T The type parameter of the returned iterator. If omitted, the returned iterator will be of `any` type.
+	 * @group Static methods
+	 *
 	 * @example ExtraIterator.empty().toArray() // returns []
 	 */
 	static empty<T = any>(): ExtraIterator<T> {
@@ -85,6 +130,11 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 
 	/**
 	 * Creates an iterator that yields a single value.
+	 *
+	 * @param value The value the returned iterator will yield.
+	 * @returns An iterator that yields the provided value once, then ends.
+	 * @template T The type of the value yielded by the returned iterator.
+	 * @group Static methods
 	 *
 	 * @example ExtraIterator.single(42).toArray() // returns [42]
 	 */
@@ -95,15 +145,27 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	/**
 	 * Creates an iterator that yields incrementing numbers.
 	 *
+	 * @remarks
+	 *
 	 * > ⚠ This iterator is infinite. Use {@link take} method if you want a specific number of values.
 	 *
-	 * @example ExtraIterator.count().take(5).toArray() // returns [0, 1, 2, 3, 4]
+	 * @param options An optional object to configure the behavior of the returned iterator.
+	 * @param options.start The first number yielded by the iterator. Default is `0`.
+	 * @param options.increment The difference between each pair of consecutive numbers yielded by the returned
+	 * iterator. If you set a negative increment, the iterator will count downwards. Default is `1`.
+	 * @return An iterator that yields incrementing numbers starting from `start` and incrementing by `increment`.
+	 * @group Static methods
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.count().take(5).toArray() // returns [0, 1, 2, 3, 4]
+	 * ExtraIterator.count({ start: 10, increment: -1 }).take(5).toArray() // returns [10, 9, 8, 7, 6]
 	 */
-	static count({ start = 0, interval = 1 } = {}): ExtraIterator<number> {
+	static count({ start = 0, increment = 1 } = {}): ExtraIterator<number> {
 		return new ExtraIterator(function*() {
 			while (true) {
 				yield start
-				start += interval;
+				start += increment;
 			}
 		}());
 	}
@@ -111,12 +173,30 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	/**
 	 * Creates an iterator that yields numbers in a "from-to" range. (exclusive)
 	 *
-	 * Chain the returned iterator into the {@link append} method to create an inclusive range. (or {@link prepend} if
-	 * the range is decremental)
+	 * @remarks
 	 *
-	 * The third argument is an optional step that defines the increment (or decrement) between each yielded number.
+	 * The returned iterator yields all numbers in the specified range. By default, the `end` value is not included in
+	 * the range. If you want to include the `end` value as well, you can set the `inclusive` option to `true`.
 	 *
-	 * @example
+	 * The third argument is an optional "step" that defines the increment (or decrement) between each yielded number.
+	 *
+	 * Note that setting `inclusive` option to `true` does not guarantee that the `end` value will be yielded, since it
+	 * also depends on the `step` value. For example, if `start` is `0`, `end` is `5`, and `step` is `2`, the returned
+	 * iterator will not yield `5` regardless of the `inclusive` option, because it is not included in the range.
+	 *
+	 * @param start The number at which the returned iterator starts yielding values.
+	 * @param end The number at which the returned iterator stops yielding values. This value is not included in the
+	 * range unless `inclusive` is set to `true`.
+	 * @param options An optional object to configure the behavior of the returned iterator.
+	 * @param options.inclusive A boolean that indicates whether the `end` value should be included in the range.
+	 * Default is `false`.
+	 * @param options.step The increment (or decrement) between each yielded number. Default is `1`.
+	 * @returns An iterator that yields numbers starting from `start` and incrementing (or decrementing) by `step`, up
+	 * to `end`.
+	 * @group Static methods
+	 *
+	 * @examples
+	 *
 	 * ExtraIterator.range(5, 10).toArray() // returns [5, 6, 7, 8, 9]
 	 * ExtraIterator.range(5, 10, { inclusive: true }).toArray() // returns [5, 6, 7, 8, 9, 10]
 	 *
@@ -149,7 +229,14 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	/**
 	 * Creates an iterator that repeatedly yields the provided value.
 	 *
+	 * @remarks
+	 *
 	 * > ⚠ This iterator is infinite. Use {@link take} method if you want a specific number of values.
+	 *
+	 * @param value The value to be repeatedly yielded by the returned iterator.
+	 * @returns An iterator that repeatedly yields the provided value.
+	 * @template T The type of the value yielded by the returned iterator.
+	 * @group Static methods
 	 *
 	 * @example ExtraIterator.repeat(3, 'a').toArray() // returns ['a', 'a', 'a']
 	 */
@@ -162,10 +249,22 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
-	 * Generates an infinite sequence of random numbers between 0 and 1 (exclusive) using `Math.random` or another
-	 * specified random number generator.
+	 * Generates an infinite sequence of random numbers between 0 and 1 (inclusive–exclusive) using `Math.random` or
+	 * another specified random number generator.
+	 *
+	 * @remarks
 	 *
 	 * > ⚠ This iterator is infinite. Use {@link take} method if you want a specific number of values.
+	 *
+	 * @param rng An optional random number generator function that returns a number between 0 and 1
+	 * (inclusive–exclusive). If not provided, `Math.random` will be used as the default random number generator.
+	 * @returns An iterator that generates an infinite sequence of random numbers between 0 and 1.
+	 * @group Static methods
+	 *
+	 * @example
+	 *
+	 * // Produces an array of 5 random numbers, e.g. `[0.123, 0.456, 0.789, 0.012, 0.345]`
+	 * const randomNumbers = ExtraIterator.random().take(5).toArray()
 	 */
 	static random(rng = Math.random): ExtraIterator<number> {
 		return ExtraIterator.from(function*() {
@@ -177,23 +276,53 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 
 	/**
 	 * Generates an infinite sequence of cryptographically strong random bytes using `crypto.getRandomValues`, in
-	 * chunks of `chunkSize` bytes.
+	 * chunks of `bufferSize` bytes.
 	 *
-	 * By default, this method reuses the same `ArrayBuffer` instance for each chunk, refilling it with new random
-	 * values at each iteration, so you should not keep references to the yielded buffers. Set `reuseBuffer` to `false`
-	 * if you want this method to yield copies of the buffer instead.
+	 * @remarks
 	 *
-	 * If you want a flat sequence of individual byte values instead of chunks, you can chain the iterator returned by
-	 * this method with the {@link flatten} method. The resulting iterator will contain interger values from 0 to 255
-	 * (inclusive).
+	 * If you want a flat sequence of individual byte values instead of chunks, you can chain the returned iterator with
+	 * the {@link flatten} method. The resulting iterator will contain interger values from 0 to 255 (inclusive).
 	 *
 	 * > ⚠ This iterator is infinite. Use {@link take} method if you want a specific number of values.
+	 *
+	 * @param options An optional object to configure the behavior of the returned iterator.
+	 * @param options.bufferSize The number of random bytes to generate in each chunk. Default is `1024`.
+	 * @param options.sharedBuffer If `false` (which is the default), each yielded `Uint8Array` instance owns its own
+	 * buffer containing the random bytes. This is safer since you won't accidentally modify the values of a previously
+	 * yielded chunk by modifying a later one, but the iterator has to allocate a new buffer for each chunk. If this
+	 * option is set to `true`, the resulting iterator will yield new `Uint8Array` views of the same underlying buffer,
+	 * refilling the buffer with new random bytes between each iteration. This is more performant, but you should be
+	 * careful to not keep references to the old views since the values will change.
+	 * @returns An iterator that generates an infinite sequence of cryptographically strong random bytes in chunks of
+	 * `bufferSize` bytes.
+	 * @group Static methods
+	 *
+	 * @example
+	 *
+	 * // Produces an array with 3 chunks of random bytes, each containing 16 bytes, e.g.
+	 * // ```
+	 * // [
+	 * //     Uint8Array(16) [ 0x12, 0x34, ..., 0x56 ],
+	 * //     Uint8Array(16) [ 0x78, 0x9a, ..., 0xbc ],
+	 * //     Uint8Array(16) [ 0xde, 0xf0, ..., 0x12 ],
+	 * // ]
+	 * // ```
+	 * const chunks = ExtraIterator.randomBytes({ bufferSize: 16 })
+	 * 		.take(3)
+	 * 		.toArray();
+	 *
+	 * @example
+	 *
+	 * // Produces an array of 128 random byte values (integers from 0 to 255)
+	 * const bytes = ExtraIterator.randomBytes().flatten().take(128).toArray();
 	 */
-	static randomBytes({ chunkSize = 1024, reuseBuffer = true } = {}): ExtraIterator<ArrayBuffer> {
-		const bytes = new Uint8Array(chunkSize);
+	static randomBytes({ bufferSize = 1024, sharedBuffer = false } = {}): ExtraIterator<Uint8Array> {
+		const bytes = new Uint8Array(bufferSize);
 		return new ExtraIterator(function*() {
 				globalThis.crypto.getRandomValues(bytes);
-				yield reuseBuffer ? bytes.buffer : new Uint8Array(bytes).buffer;
+				yield sharedBuffer
+					? new Uint8Array(bytes.buffer) // Creates a view of the local buffer
+					: new Uint8Array(bytes); // Copies the data into a new buffer
 			}())
 			.loop();
 	}
@@ -274,18 +403,31 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 * Flattens the iterator by one level. If the iterator yields iterables, it will yield their values.
 	 * If the iterator yields non-iterables, it will yield the values as is.
 	 *
-	 * This is equivalent to `flatMap(value => value)`.
+	 * @remarks
+	 *
+	 * This methods recursivelly flattens the iterator until all yielded values are non-iterable. This means that if the
+	 * iterator yields nested iterables, all of them will be flattened.
+	 *
+	 * @param options An optional object to configure the behavior of the flattening process.
+	 * @param options.arraylike If `true`, the flattening process will also flatten "array-like" objects (i.e., objects
+	 * that have a `length` property and numerically indexed elements) as iterables. By default, only objects that
+	 * implement the iterable protocol (i.e., have a `[Symbol.iterator]` method) are flattened.
+	 * @returns A new iterator that yields the flattened values of this iterator.
 	 *
 	 * @example ExtraIterator.from([[1, 2], [3, 4]]).flatten().toArray() // returns [1, 2, 3, 4]
 	 */
-	flatten(): T extends Iterable<infer U> ? ExtraIterator<U> : never {
-		return this.flatMap(value =>
-			typeof value === 'object'
-			&& value !== null
-			&& Symbol.iterator in value
-				? new ExtraIterator(value as Iterable<unknown>).flatten()
-				: [value]
-		) as any;
+	flatten({ arraylike = false } = {}): FlattenedExtraIterator<T> {
+		return this.flatMap(value => {
+			if (typeof value === 'object' && value !== null) {
+				if (Symbol.iterator in value) {
+					return new ExtraIterator(value as Iterable<unknown>).flatten();
+				}
+				if (arraylike && 'length' in value && typeof value.length === 'number') {
+					return ExtraIterator.from(value as ArrayLike<unknown>).flatten();
+				}
+			}
+			return [value];
+		}) as any;
 	}
 
 	/**

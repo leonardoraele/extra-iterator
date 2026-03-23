@@ -35,7 +35,7 @@ describe(ExtraIterator.name, () => {
 	});
 
 	it('should count in 2s, starting from 5', () => {
-		const iterator = ExtraIterator.count({ start: 5, interval: 2 }).take(5);
+		const iterator = ExtraIterator.count({ start: 5, increment: 2 }).take(5);
 		expect(iterator.toArray()).toEqual([5, 7, 9, 11, 13]);
 	});
 
@@ -51,7 +51,7 @@ describe(ExtraIterator.name, () => {
 	});
 
 	it('should yield random bytes', () => {
-		const values = ExtraIterator.randomBytes({ chunkSize: 1024 }).take(1).map(chunk => new Uint8Array(chunk)).flatten().toArray();
+		const values = ExtraIterator.randomBytes({ bufferSize: 1024 }).take(1).flatten().toArray();
 		expect(values.length).toBe(1024);
 		expect(values.every(value => typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 255)).toBe(true);
 	});
