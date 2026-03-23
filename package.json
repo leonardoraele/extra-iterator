@@ -9,6 +9,7 @@
     ".": "./dist/index.js",
     "./to-extra": "./dist/to-extra.js"
   },
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],

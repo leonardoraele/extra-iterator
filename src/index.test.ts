@@ -29,6 +29,16 @@ describe(ExtraIterator.name, () => {
 		expect(zipped.toArray()).toEqual([[1, 'a', true], [2, 'b', false], [3, 'c', true]]);
 	});
 
+	it('should zip its own iterable values', () => {
+		const iterator = ExtraIterator.from([
+			[1, 2, 3],
+			['a', 'b', 'c'],
+			[true, false, true],
+		]);
+		const zipped = iterator.zip();
+		expect(zipped.toArray()).toEqual([[1, 'a', true], [2, 'b', false], [3, 'c', true]]);
+	});
+
 	it('should count from 0 to a given number', () => {
 		const iterator = ExtraIterator.count().take(5);
 		expect(iterator.toArray()).toEqual([0, 1, 2, 3, 4]);
@@ -51,7 +61,7 @@ describe(ExtraIterator.name, () => {
 	});
 
 	it('should yield random bytes', () => {
-		const values = ExtraIterator.randomBytes({ bufferSize: 1024 }).take(1).flatten().toArray();
+		const values = ExtraIterator.randomBytes({ bufferSize: 1024 }).take(1).flat().toArray();
 		expect(values.length).toBe(1024);
 		expect(values.every(value => typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 255)).toBe(true);
 	});
@@ -82,7 +92,7 @@ describe(ExtraIterator.name, () => {
 	});
 
 	it('should flatten nested iterables', () => {
-		const iterator = ExtraIterator.from([0, [1, [2, [3, 4]]], [5, [6]], 7]).flatten();
+		const iterator = ExtraIterator.from([0, [1, [2, [3, 4]]], [5, [6]], 7]).flat();
 		expect(iterator.toArray()).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
 	});
 

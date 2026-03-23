@@ -281,7 +281,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 * @remarks
 	 *
 	 * If you want a flat sequence of individual byte values instead of chunks, you can chain the returned iterator with
-	 * the {@link flatten} method. The resulting iterator will contain interger values from 0 to 255 (inclusive).
+	 * the {@link flat} method. The resulting iterator will contain interger values from 0 to 255 (inclusive).
 	 *
 	 * > ⚠ This iterator is infinite. Use {@link take} method if you want a specific number of values.
 	 *
@@ -416,14 +416,14 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 *
 	 * @example ExtraIterator.from([[1, 2], [3, 4]]).flatten().toArray() // returns [1, 2, 3, 4]
 	 */
-	flatten({ arraylike = false } = {}): FlattenedExtraIterator<T> {
+	flat({ arraylike = false } = {}): FlattenedExtraIterator<T> {
 		return this.flatMap(value => {
 			if (typeof value === 'object' && value !== null) {
 				if (Symbol.iterator in value) {
-					return new ExtraIterator(value as Iterable<unknown>).flatten();
+					return new ExtraIterator(value as Iterable<unknown>).flat();
 				}
 				if (arraylike && 'length' in value && typeof value.length === 'number') {
-					return ExtraIterator.from(value as ArrayLike<unknown>).flatten();
+					return ExtraIterator.from(value as ArrayLike<unknown>).flat();
 				}
 			}
 			return [value];
@@ -652,30 +652,87 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
+	 * If the elements of this iterator are also iterable, then this method creates a new iterator that iterates on all
+	 * those iterable elements simultaneously.
+	 *
+	 * @remarks
+	 *
+	 * For each iteration of the resulting iterator, it yields an array. The array contains one element from each of the
+	 * child iterable, at the corresponding position.
+	 *
+	 * @returns A new iterator that iterates on all the iterable elements of this iterator simultaneously.
+	 *
+	 * @example ExtraIterator.from([
+	 *         [1, 2, 3],
+	 *         ['a', 'b', 'c'],
+	 *         [true, false, true],
+	 *     ])
+	 *     .zip()
+	 *     .toArray() // returns [[1, 'a', true], [2, 'b', false], [3, 'c', true]]
+	 */
+	zip(): T extends Iterable<infer U> ? ExtraIterator<U[]> : never;
+
+	/**
 	 * Creates a new iterator that iterates on this iterator and the proviuded other iterator, yielding arrays of pairs
 	 * of elements from this iterator and the other.
 	 *
-	 * The elements in this iterator are the first elements of the pairs, and the elements in the other iterator are the
-	 * second elements of the pairs.
+	 * @param other An iterable to zip with this iterator.
+	 * @returns A new iterator that iterates on this iterator and the provided other iterator simultaneously.
 	 *
 	 * @example ExtraIterator.from([1, 2, 3])
 	 *     .zip(['a', 'b', 'c'])
 	 *     .toArray()
 	 *     // returns [[1, 'a'], [2, 'b'], [3, 'c']]
 	 */
-	zip<U>(other: Iterable<U>): ExtraIterator<[T, U]> {
-		return ExtraIterator.from(
-			function*(this: ExtraIterator<T>): Generator<[T, U]> {
-				const otherIterator = Iterator.from(other);
-				for (
-					let thisNext: IteratorResult<T>, otherNext: IteratorResult<U>;
-					thisNext = this.next(), otherNext = otherIterator.next(), !thisNext.done && !otherNext.done;
-				) {
-					yield [thisNext.value, otherNext.value];
-				}
-			}.call(this)
-		);
+	zip<U>(other: Iterable<U>): ExtraIterator<[T, U]>;
+	zip<U1, U2>(other1: Iterable<U1>, other2: Iterable<U2>): ExtraIterator<[T, U1, U2]>;
+	zip<U1, U2, U3>(other1: Iterable<U1>, other2: Iterable<U2>, other3: Iterable<U3>): ExtraIterator<[T, U1, U2, U3]>;
+	zip<U1, U2, U3, U4>(other1: Iterable<U1>, other2: Iterable<U2>, other3: Iterable<U3>, other4: Iterable<U4>): ExtraIterator<[T, U1, U2, U3, U4]>;
+
+	/**
+	 * Creates a new iterator that iterates on this iterator and the proviuded other iterators simultaneously, yielding
+	 * arrays with the elements these iterators at the corresponding position.
+	 *
+	 * @param others Several iterables to zip with this iterator.
+	 * @returns A new iterator that iterates on this iterator and the provided other iterators simultaneously.
+	 *
+	 * @example ExtraIterator.from([1, 2, 3])
+	 *     .zip(['a', 'b', 'c'], [true, false, true])
+	 *     .toArray()
+	 *     // returns [[1, 'a', true], [2, 'b', false], [3, 'c', true]]
+	 */
+	zip<U>(...others: Iterable<U>[]): ExtraIterator<(T | U)[]>;
+	zip(...others: Iterable<any>[]): ExtraIterator<any[]> {
+		return others.length > 0
+			? ExtraIterator.zip(this, ...others)
+			: ExtraIterator.zip(...this as any);
 	}
+
+	// /**
+	//  * Creates a new iterator that iterates on this iterator and the proviuded other iterator, yielding arrays of pairs
+	//  * of elements from this iterator and the other.
+	//  *
+	//  * The elements in this iterator are the first elements of the pairs, and the elements in the other iterator are the
+	//  * second elements of the pairs.
+	//  *
+	//  * @example ExtraIterator.from([1, 2, 3])
+	//  *     .zip(['a', 'b', 'c'])
+	//  *     .toArray()
+	//  *     // returns [[1, 'a'], [2, 'b'], [3, 'c']]
+	//  */
+	// zip<U>(other: Iterable<U>): ExtraIterator<[T, U]> {
+	// 	return ExtraIterator.from(
+	// 		function*(this: ExtraIterator<T>): Generator<[T, U]> {
+	// 			const otherIterator = Iterator.from(other);
+	// 			for (
+	// 				let thisNext: IteratorResult<T>, otherNext: IteratorResult<U>;
+	// 				thisNext = this.next(), otherNext = otherIterator.next(), !thisNext.done && !otherNext.done;
+	// 			) {
+	// 				yield [thisNext.value, otherNext.value];
+	// 			}
+	// 		}.call(this)
+	// 	);
+	// }
 
 	/**
 	 * Creates a new iterator that yields the values of this iterator interposed by the provided separator. i.e. The
