@@ -1,5 +1,12 @@
 # extra-iterator
 
+[![Static Badge](https://img.shields.io/badge/github-gray?logo=github)
+](https://github.com/leonardoraele/extra-iterator)
+[![Static Badge](https://img.shields.io/badge/npm-red?logo=npm)
+](https://www.npmjs.com/package/extra-iterator)
+[![GitHub License](https://img.shields.io/github/license/leonardoraele/extra-iterator)](./LICENSE.txt)
+[![npm bundle size](https://img.shields.io/bundlephobia/minzip/extra-iterator)](https://bundlephobia.com/package/extra-iterator)
+
 An extended JavaScript iterator with several utility methods for transforming, combining, and consuming sequences.
 
 `ExtraIterator` inherits from the built-in Iterator Helpers API, so you still get the standard iterator methods such as
@@ -12,6 +19,7 @@ set of helpers aimed at day-to-day collection work.
 - Lazy operations
 - Zero dependencies 🎉
 - Fully typed with TypeScript
+- 100% test coverage
 
 ## Installation
 
@@ -40,7 +48,7 @@ console.log(result);
 // [20, 40, 60, 999]
 ```
 
-## Creating an ExtraIterator
+### Creating an ExtraIterator
 
 Use `ExtraIterator.from()` to wrap anything sequence-like:
 
@@ -64,7 +72,7 @@ console.log(fromArrayLike.toArray());
 // ['x', 'y']
 ```
 
-## Laziness and consumption
+### Laziness and consumption
 
 Transformation methods are lazy. Nothing happens until you consume the iterator.
 
@@ -150,6 +158,8 @@ const commonAncestor = ExtraIterator.from(document.querySelectorAll('p'))
 ```
 
 ## API overview
+
+See full API documentation at: **[leonardoraele.github.io/extra-iterator](https://leonardoraele.github.io/extra-iterator/classes/.ExtraIterator.html)**
 
 ### Static constructors
 

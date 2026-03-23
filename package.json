@@ -13,6 +13,7 @@
   "files": [
     "dist"
   ],
+  "repository": "https://github.com/leonardoraele/extra-iterator",
   "scripts": {
     "test": "run-p test:*",
     "test:types": "tsc --noEmit",
