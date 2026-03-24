@@ -209,9 +209,9 @@ describe(ExtraIterator.name, () => {
 			const iterator = ExtraIterator.from([1, 2, 3, 4]).take(-2);
 			expect(iterator.toArray()).toEqual([3, 4]);
 		});
-		it('should take only as many values as the iterator contains', () => {
-			expect(ExtraIterator.from([1, 2]).take(5).toArray()).toEqual([1, 2]);
-			expect(ExtraIterator.from([1, 2]).take(-5).toArray()).toEqual([1, 2]);
+		it('should take only as many values as the iterator contains', async t => {
+			await t.test('positive count', () => expect(ExtraIterator.from([1, 2]).take(5).toArray()).toEqual([1, 2]));
+			await t.test('negative count', () => expect(ExtraIterator.from([1, 2]).take(-5).toArray()).toEqual([1, 2]));
 		});
 	});
 

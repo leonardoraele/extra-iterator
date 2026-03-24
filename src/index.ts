@@ -422,14 +422,14 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	private takeLast(count: number): ExtraIterator<T> {
-		const ringbuffer: T[] = new Array(count);
+		const ringbuffer: T[] = [];
 		let index = 0;
 		for (let item; item = this.next(), !item.done; index = (index + 1) % count) {
 			ringbuffer[index] = item.value;
 		}
 		return ExtraIterator.from(function*() {
-			for (let i = index; i < count + index; i++) {
-				yield ringbuffer[i % count]!;
+			for (let i = 0; i < ringbuffer.length; i++) {
+				yield ringbuffer[(i + index) % ringbuffer.length]!;
 			}
 		}());
 	}
