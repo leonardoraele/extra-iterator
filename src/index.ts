@@ -34,14 +34,6 @@ export type FlattenedExtraIterator<T>
  * const iter = ExtraIterator.from([1, 2, 3, 4, 5]);
  *
  * @example
- * // Creating a sequence of ancestors of a given element
- * ExtraIterator.from([1, 2, 3, 4, 5])
- *   .filter(n => n % 2 === 0)
- *   .map(n => n * 2)
- *   .toArray()
- *   // returns [4, 8]
- *
- * @example
  * // Using static factory methods
  * ExtraIterator.range(1, 5)
  *   .map(n => n * n)
@@ -377,14 +369,17 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	// OVERRIDES
 	// =================================================================================================================
 
+	/** @group Iterator protocol methods */
 	override next(value?: any): IteratorResult<T, any> {
 		return this.source.next(value);
 	}
 
+	/** @group Transformation methods */
 	override map<U>(callbackfn: (value: T, index: number) => U): ExtraIterator<U> {
 		return ExtraIterator.from(super.map(callbackfn));
 	}
 
+	/** @group Transformation methods */
 	override filter<S extends T>(predicate: (value: T, index: number) => value is S): ExtraIterator<S>;
 	override filter(predicate: (value: T, index: number) => unknown): ExtraIterator<T>;
 	override filter(predicate: (value: T, index: number) => unknown): ExtraIterator<T> {
@@ -460,6 +455,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 			: ExtraIterator.from(this.toArray().toSpliced(count, -count));
 	}
 
+	/** @group Transformation methods */
 	override flatMap<U>(
 		callback: (value: T, index: number) => Iterator<U, unknown, undefined> | Iterable<U, unknown, undefined>,
 	): ExtraIterator<U> {
@@ -508,6 +504,10 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 
 	/**
 	 * Creates a new iterator that yields the values of this iterator, but won't yield any duplicates.
+	 *
+	 * @remarks
+	 *
+	 * The returned iterator yields the first occurrence of each value in this iterator.
 	 *
 	 * @param keyProvider An optional function that returns a key for each value. The keys are used to determine whether
 	 * two values are equal or not. If two values have the same key, only the first one will be yielded. The other is
@@ -1241,6 +1241,8 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 * `-1` for the last element, `-2` for the second to last, and so on.
 	 * @returns The value at the provided index, or `undefined` if the index is out of bounds (i.e., if there are
 	 * not enough elements in the iterator).
+	 * @group Aggregation methods
+	 *
 	 * @example
 	 *
 	 * ExtraIterator.from([1, 2, 3, 4]).at(2) // returns 3
@@ -1348,7 +1350,6 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 *
 	 * @template U The type of the value returned by the provided function.
 	 * @param callback A function that takes this iterator as argument and returns a value.
-	 * @param iter This iterator.
 	 * @returns The value returned by calling the provided callback function with this iterator as argument.
 	 * @group Aggregation methods
 	 *

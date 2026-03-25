@@ -1,4 +1,4 @@
-# extra-iterator
+# `extra-iterator`
 
 [![Static Badge](https://img.shields.io/badge/github-gray?logo=github)
 ](https://github.com/leonardoraele/extra-iterator)
@@ -7,11 +7,10 @@
 [![GitHub License](https://img.shields.io/github/license/leonardoraele/extra-iterator)](./LICENSE.txt)
 [![npm bundle size](https://img.shields.io/bundlephobia/minzip/extra-iterator)](https://bundlephobia.com/package/extra-iterator)
 
-An extended JavaScript iterator with several utility methods for transforming, combining, and consuming sequences.
+An extension of JavaScript's built-in Iterator class, with several utility functions for transforming and aggregating
+sequences of values.
 
-`ExtraIterator` inherits from the built-in Iterator Helpers API, so you still get the standard iterator methods such as
-`map()`, `filter()`, `flatMap()`, `reduce()`, `some()`, `every()`, `find()`, `forEach()`, and `toArray()`, plus a larger
-set of helpers aimed at day-to-day collection work.
+> Contributions are welcome. 🤗
 
 ## Features
 
@@ -33,43 +32,78 @@ This package extends the built-in `Iterator` class and uses the Iterator Helpers
 
 Use it in a runtime that already supports iterator helpers, or load an appropriate polyfill.
 
-## Quick start
+## Usage Examples
+
+### Work with ranges
 
 ```js
 import { ExtraIterator } from 'extra-iterator';
 
-const result = ExtraIterator.from([1, 2, 3, 4, 5, 6])
-    .filter(value => value % 2 === 0)
-    .map(value => value * 10)
-    .append(999)
+const range = ExtraIterator.range(1, 6)
+    .map(n => n * 2)
     .toArray();
 
-console.log(result);
-// [20, 40, 60, 999]
+console.log(range); // [1, 2, 3, 4, 5]
 ```
 
-### Creating an ExtraIterator
-
-Use `ExtraIterator.from()` to wrap anything sequence-like:
-
-- arrays
-- iterables such as `Set`, `Map`, strings, generators, and DOM collections that implement `Symbol.iterator`
-- iterators
-- array-like objects with numeric indexes and a `length`
+### Manipulate the sequence
 
 ```js
 import { ExtraIterator } from 'extra-iterator';
 
-const fromArray = ExtraIterator.from([1, 2, 3]);
-const fromSet = ExtraIterator.from(new Set([1, 2, 3]));
+const result = ExtraIterator.concat([1, 2, 3], [4, 5, 6])
+    .dropWhile(n => n < 3)
+    .take(3)
+    .loop(4)
+    .toArray();
+
+console.log(result); // [3, 4, 5, 3, 4, 5, 3, 4, 5, 3, 4, 5]
+```
+
+### Map an object's key-values pairs
+
+```js
+import { ExtraIterator } from 'extra-iterator';
+
+const example = {
+    first: 1,
+    second: 2,
+    third: 3,
+};
+
+const result = ExtraIterator.from(Object.entries(example))
+    .append(['fourth', 4])
+    .interposeWith(([leftKey, leftValue], [rightKey, rightValue]) =>
+        [`${leftKey}_${rightKey}`, (leftValue + rightValue) / 2]
+    )
+    .collect(Object.fromEntries);
+
+console.log(result);
+// {
+//   first: 1,
+//   first_second: 1.5,
+//   second: 2,
+//   second_third: 2.5,
+//   third: 3,
+//   third_fourth: 3.5,
+//   fourth: 4
+// }
+```
+
+### Use `ExtraIterator.from()` to wrap an iterable, iterator, or array-like object
+
+```js
+import { ExtraIterator } from 'extra-iterator';
+
+const fromIterable = ExtraIterator.from(new Set([1, 2, 3]));
 const fromGenerator = ExtraIterator.from(function*() {
     yield 'a';
     yield 'b';
 }());
 const fromArrayLike = ExtraIterator.from({ 0: 'x', 1: 'y', length: 2 });
 
-console.log(fromArrayLike.toArray());
-// ['x', 'y']
+console.log(fromGenerator.toArray()); // ['a', 'b']
+console.log(fromArrayLike.toArray()); // ['x', 'y']
 ```
 
 ### Laziness and consumption
@@ -92,22 +126,7 @@ console.log(iter.take(2).toArray());
 Like native iterators, `ExtraIterator` instances are generally one-shot. Once consumed, the values are gone unless you
 create a new iterator.
 
-## More Examples
-
-### Flatten nested values
-
-```js
-import { ExtraIterator } from 'extra-iterator';
-
-const values = ExtraIterator.from([0, [1, [2, [3, 4]]], [5, [6]], 7])
-    .flatten()
-    .toArray();
-
-console.log(values);
-// [0, 1, 2, 3, 4, 5, 6, 7]
-```
-
-### Work with ranges and infinite sequences
+### Work with infinite sequences
 
 ```js
 import { ExtraIterator } from 'extra-iterator';
@@ -116,14 +135,19 @@ const evens = ExtraIterator.count({ start: 0, increment: 2 })
     .take(5)
     .toArray();
 
-const range = ExtraIterator.range(1, 6)
+console.log(evens); // [0, 2, 4, 6, 8]
+```
+
+### Flatten nested arrays
+
+```js
+import { ExtraIterator } from 'extra-iterator';
+
+const values = ExtraIterator.from([0, [1, [2, [3, 4]]], [5, [6]], 7])
+    .flat()
     .toArray();
 
-console.log(evens);
-// [0, 2, 4, 6, 8]
-
-console.log(range);
-// [1, 2, 3, 4, 5]
+console.log(values); // [0, 1, 2, 3, 4, 5, 6, 7]
 ```
 
 ### Group adjacent values into chunks
@@ -135,11 +159,10 @@ const chunks = ExtraIterator.from([1, 1, 2, 3, 3, 3, 2, 2])
     .chunkWith((left, right) => left === right)
     .toArray();
 
-console.log(chunks);
-// [[1, 1], [2], [3, 3, 3], [2, 2]]
+console.log(chunks); // [[1, 1], [2], [3, 3, 3], [2, 2]]
 ```
 
-### Find the nearest common ancestor between all `p` DOM elements
+### Find the nearest common ancestor between all DOM paragraph elements
 
 ```js
 import { ExtraIterator } from 'extra-iterator';
@@ -153,8 +176,8 @@ const commonAncestor = ExtraIterator.from(document.querySelectorAll('p'))
     .map(ancestorList => ancestorList.toArray().reverse())
     .zip()
     .takeWhile(nodes => new Set(nodes).size === 1)
-    .map(nodes => nodes[0])
-    .last();
+    .last()
+    .first();
 ```
 
 ## API overview
@@ -229,7 +252,7 @@ These methods consume the iterator and return a final value instead of another i
 You also still have the native consuming helpers provided by iterator helpers, such as `reduce()`, `some()`, `every()`,
 `find()`, `forEach()`, and `toArray()`.
 
-## Optional `[toExtra]()` helper
+### Optional `[toExtra]()` helper
 
 An optional, chainable helper method that transforms any iterable object into an `ExtraIterator`.
 
