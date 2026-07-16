@@ -518,4 +518,20 @@ describe(ExtraIterator.name, () => {
 			expect(iterator.toArray()).toEqual([[0, 0], [1, 1], [2, 2], [3, 3], [4, 4]]);
 		});
 	});
+
+	describe(ExtraIterator.fromKeys.name, () => {
+		it('should create an iterator from the keys of an object', () => {
+			const obj = { a: 1, b: 2, c: 3 };
+			const iterator: ExtraIterator<'a' | 'b' | 'c'> = ExtraIterator.fromKeys(obj);
+			expect(iterator.toArray()).toEqual(['a', 'b', 'c']);
+		});
+	});
+
+	describe(ExtraIterator.fromEntries.name, () => {
+		it('should create an iterator from the entries of an object', () => {
+			const obj = { a: 1, b: 2, c: 3 };
+			const iterator: ExtraIterator<['a' | 'b' | 'c', number]> = ExtraIterator.fromEntries(obj);
+			expect(iterator.toArray()).toEqual([['a', 1], ['b', 2], ['c', 3]]);
+		});
+	});
 });

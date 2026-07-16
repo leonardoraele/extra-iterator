@@ -71,6 +71,43 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		return new ExtraIterator(source);
 	}
 
+	/**
+	 * Creates a new `ExtraIterator` that iterates over the keys of the provided object.
+	 *
+	 * @remarks This is similar to {@link Object.keys} function, but it returns an `ExtraIterator` instead of array, and
+	 * the keys are typed as `keyof T` instead of `string`, for convenience.
+	 *
+	 * @param subject The object whose keys will be iterated over.
+	 * @returns An `ExtraIterator` that yields the keys of the provided object.
+	 *
+	 * @example
+	 *
+	 * const obj = { a: 1, b: 2, c: 3 };
+	 * ExtraIterator.fromKeys(obj).toArray() // returns ['a', 'b', 'c'] as ('a' | 'b' | 'c')[]
+	 */
+	static fromKeys<T extends object>(subject: T): ExtraIterator<keyof T> {
+		return ExtraIterator.from(Object.keys(subject) as (keyof T)[]);
+	}
+
+	/**
+	 * Creates a new `ExtraIterator` that iterates over the entries of the provided object.
+	 *
+	 * @remarks This is similar to {@link Object.entries} function, but it returns an `ExtraIterator` instead of array,
+	 * and the keys of each tuple is typed as `keyof T` instead of `string`, for convenience.
+	 *
+	 * @param subject The object whose entries will be iterated over.
+	 * @returns An `ExtraIterator` that yields the entries of the provided object as `[key, value]` tuples.
+	 *
+	 * @example
+	 *
+	 * const obj = { a: 1, b: 2, c: 3 };
+	 * ExtraIterator.fromEntries(obj).toArray()
+	 * // returns [['a', 1], ['b', 2], ['c', 3]] as (['a' | 'b' | 'c', number])[]
+	 */
+	static fromEntries<K extends PropertyKey, V, T extends Record<K, V>>(subject: T): ExtraIterator<[K, V]> {
+		return ExtraIterator.from(Object.entries(subject) as [K, V][]);
+	}
+
 	static zip<A, B>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>): ExtraIterator<[A, B]>;
 	static zip<A, B, C>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>, c: ExtraIteratorSource<C>): ExtraIterator<[A, B, C]>;
 	static zip<A, B, C, D>(a: ExtraIteratorSource<A>, b: ExtraIteratorSource<B>, c: ExtraIteratorSource<C>, d: ExtraIteratorSource<D>): ExtraIterator<[A, B, C, D]>;
