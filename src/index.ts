@@ -1,5 +1,5 @@
 /**
- * A type that represents all the possible sources that can be used to create an `ExtraIterator`.
+ * A type that represents all the possible sources that can be used to create an {@link ExtraIterator}.
  *
  * @remarks
  *
@@ -12,7 +12,7 @@
 export type ExtraIteratorSource<T> = Iterator<T, any, any> | Iterable<T, any, any> | ArrayLike<T>;
 
 /**
- * Utility type that flattens nested iterables into an `ExtraIterator` or non-iterable type parameter.
+ * Utility type that flattens nested iterables into an {@link ExtraIterator} or non-iterable type parameter.
  * @template T The type of the values yielded by the original iterator.
  * @returns A new type that represents the flattened version of the original iterator. If `T` is an iterable, it will be
  * recursively flattened; otherwise, it returns `ExtraIterator<T>`.
@@ -47,11 +47,11 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	// =================================================================================================================
 
 	/**
-	 * Creates a new `ExtraIterator` from an iterable, iterator, or array-like object.
+	 * Creates a new {@link ExtraIterator} from an iterable, iterator, or array-like object.
 	 *
 	 * @param source The source to create the iterator from. This can be any object that is either an `Iterator`, an
 	 * `Iterable`, or an array-like object (i.e., has a `length` property and numerically indexed elements).
-	 * @returns A new `ExtraIterator` instance.
+	 * @returns A new {@link ExtraIterator} instance.
 	 * @template T The type of the elements of the `source` parameter.
 	 * @group Static constructors
 	 *
@@ -72,13 +72,13 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
-	 * Creates a new `ExtraIterator` that iterates over the keys of the provided object.
+	 * Creates a new {@link ExtraIterator} that iterates over the keys of the provided object.
 	 *
-	 * @remarks This is similar to {@link Object.keys} function, but it returns an `ExtraIterator` instead of array, and
+	 * @remarks This is similar to {@link Object.keys} function, but it returns an {@link ExtraIterator} instead of array, and
 	 * the keys are typed as `keyof T` instead of `string`, for convenience.
 	 *
 	 * @param subject The object whose keys will be iterated over.
-	 * @returns An `ExtraIterator` that yields the keys of the provided object.
+	 * @returns An {@link ExtraIterator} that yields the keys of the provided object.
 	 *
 	 * @example
 	 *
@@ -90,13 +90,13 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	}
 
 	/**
-	 * Creates a new `ExtraIterator` that iterates over the entries of the provided object.
+	 * Creates a new {@link ExtraIterator} that iterates over the entries of the provided object.
 	 *
-	 * @remarks This is similar to {@link Object.entries} function, but it returns an `ExtraIterator` instead of array,
+	 * @remarks This is similar to {@link Object.entries} function, but it returns an {@link ExtraIterator} instead of array,
 	 * and the keys of each tuple is typed as `keyof T` instead of `string`, for convenience.
 	 *
 	 * @param subject The object whose entries will be iterated over.
-	 * @returns An `ExtraIterator` that yields the entries of the provided object as `[key, value]` tuples.
+	 * @returns An {@link ExtraIterator} that yields the entries of the provided object as `[key, value]` tuples.
 	 *
 	 * @example
 	 *
