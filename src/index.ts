@@ -1301,7 +1301,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 *  .toArray()
 	 *  // returns { even: [2, 4], odd: [1, 3, 5] }
 	 */
-	groupBy<K extends keyof any>(callbackfn: (value: T, index: number) => K): Partial<Record<K, T[]>> {
+	groupBy<K extends PropertyKey>(callbackfn: (value: T, index: number) => K): Partial<Record<K, T[]>> {
 		return this.collect(items => Object.groupBy(items, callbackfn));
 	}
 
@@ -1329,7 +1329,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 *     .toArray()
 	 *     // returns Map { 'even' => [2, 4], 'odd' => [1, 3, 5] }
 	 */
-	toMap<K extends keyof any>(callbackfn: (value: T, index: number) => K): Map<K, T[]> {
+	toMap<K extends PropertyKey>(callbackfn: (value: T, index: number) => K): Map<K, T[]> {
 		return this.collect(items => Map.groupBy(items, callbackfn));
 	}
 
