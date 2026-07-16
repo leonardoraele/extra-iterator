@@ -1188,6 +1188,28 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 		}.call(this));
 	}
 
+	/**
+	 * Creates a new iterator that yields the values of this iterator along with their corresponding indices.
+	 *
+	 * @returns A new iterator that yields tuples of the form `[index, value]`, where `index` is the index of the value
+	 * in this iterator, and `value` is the value itself.
+	 * @group Transformation methods
+	 *
+	 * @example
+	 *
+	 * ExtraIterator.from(['a', 'b', 'c'])
+	 *     .entries()
+	 *     .toArray()
+	 *     // returns [[0, 'a'], [1, 'b'], [2, 'c']]
+	 */
+	entries(): ExtraIterator<[number, T]> {
+		return ExtraIterator.from(function*(this: ExtraIterator<T>) {
+			for (let index = 0, next; next = this.next(), !next.done; index++) {
+				yield [index, next.value] as [number, T];
+			}
+		}.call(this));
+	}
+
 	// =================================================================================================================
 	// AGGREGATING FUNCTIONS
 	// -----------------------------------------------------------------------------------------------------------------

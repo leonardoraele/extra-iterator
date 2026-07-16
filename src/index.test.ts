@@ -501,4 +501,21 @@ describe(ExtraIterator.name, () => {
 			expect(iterator.toArray()).toEqual([{ value: 2 }, { value: 4 }, { value: 6 }]);
 		});
 	});
+
+	describe(ExtraIterator.prototype.entries.name, () => {
+		it('should return an iterator of [index, value] pairs', () => {
+			const iterator = ExtraIterator.from(['a', 'b', 'c']).entries();
+			expect(iterator.toArray()).toEqual([[0, 'a'], [1, 'b'], [2, 'c']]);
+		});
+
+		it('should return an empty iterator for an empty iterator', () => {
+			const iterator = ExtraIterator.empty().entries();
+			expect(iterator.toArray()).toEqual([]);
+		});
+
+		it('should work with infinite iterators', () => {
+			const iterator = ExtraIterator.count().entries().take(5);
+			expect(iterator.toArray()).toEqual([[0, 0], [1, 1], [2, 2], [3, 3], [4, 4]]);
+		});
+	});
 });
