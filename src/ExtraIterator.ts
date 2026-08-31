@@ -372,7 +372,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 * @example
 	 *
 	 * // Produces an array of 128 random byte values (integers from 0 to 255)
-	 * const bytes = ExtraIterator.randomBytes().flatten().take(128).toArray();
+	 * const bytes = ExtraIterator.randomBytes().flat().take(128).toArray();
 	 */
 	static randomBytes({ bufferSize = 1024, sharedBuffer = false } = {}): ExtraIterator<Uint8Array> {
 		const bytes = new Uint8Array(bufferSize);
@@ -523,7 +523,7 @@ export class ExtraIterator<T> extends Iterator<T, any, any> {
 	 *
 	 * @example
 	 *
-	 * ExtraIterator.from([[1, 2], [3, 4]]).flatten().toArray() // returns [1, 2, 3, 4]
+	 * ExtraIterator.from([[1, 2], [3, 4]]).flat().toArray() // returns [1, 2, 3, 4]
 	 */
 	flat({ arraylike = false } = {}): FlattenedExtraIterator<T> {
 		return this.flatMap(value => {

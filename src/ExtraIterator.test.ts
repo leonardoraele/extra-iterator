@@ -1,4 +1,4 @@
-import { ExtraIterator } from './index';
+import { ExtraIterator } from './ExtraIterator';
 import { describe, it } from 'node:test';
 import { expect } from 'expect';
 

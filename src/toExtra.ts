@@ -1,4 +1,4 @@
-import { ExtraIterator } from './index.js';
+import { ExtraIterator } from './ExtraIterator.js';
 
 /**
  * A symbol that can be used as a method to convert any `Iterable` object into an `ExtraIterator`. Useful for chaining

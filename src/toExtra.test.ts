@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
-import { toExtra } from './to-extra';
+import { toExtra } from './toExtra';
 import { expect } from 'expect';
-import { ExtraIterator } from './index';
+import { ExtraIterator } from './ExtraIterator';
 
 describe(String(toExtra), () => {
 	it('should convert an array into an ExtraIterator', () => {
