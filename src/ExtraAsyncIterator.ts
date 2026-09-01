@@ -6,7 +6,13 @@ export type FlattenedExtraAsyncIterator<T>
 		: T extends AsyncIterable<infer U> ? FlattenedExtraAsyncIterator<U>
 		: ExtraAsyncIterator<T>;
 
-export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
+export type UnsubscribeFn = () => void;
+
+export type ListenerFn<T extends unknown[]> = (...args: [...T]) => void
+
+export type SubscribeFn<T extends unknown[]> = (listener: ListenerFn<T>) => UnsubscribeFn;
+
+export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIterable<T> {
 
 	// =================================================================================================================
 	// STATIC FUNCTIONS & CONSTRUCTOR
@@ -93,6 +99,21 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 			.then(() => controller.close())
 			.catch(error => controller.error(error));
 		return merged;
+	}
+
+	public static subscribe<T extends unknown[]>(
+		subscribe: SubscribeFn<T>,
+		{ signal = null as AbortSignal | null } = {},
+	): ExtraAsyncIterator<T> {
+		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
+		const unsubscribe = subscribe((...args: T) => {
+			controller.enqueue(args);
+		});
+		signal?.addEventListener('abort', () => iterator.return());
+		return iterator.then(() => {
+			unsubscribe();
+			controller.close();
+		});
 	}
 
 	public static withController<T>() {
@@ -543,6 +564,26 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 	// MISC METHODS
 	// =================================================================================================================
 
+	public catch(callback: (error: unknown) => void): ExtraAsyncIterator<T> {
+		return ExtraAsyncIterator.from(async function* (this: ExtraAsyncIterator<T>) {
+			try {
+				yield* this;
+			} catch (error) {
+				callback(error);
+			}
+		}.call(this));
+	}
+
+	public finally(callback: () => unknown): ExtraAsyncIterator<T> {
+		return ExtraAsyncIterator.from(async function* (this: ExtraAsyncIterator<T>) {
+			try {
+				yield* this;
+			} finally {
+				callback();
+			}
+		}.call(this));
+	}
+
 	public tee(): [ExtraAsyncIterator<T>, ExtraAsyncIterator<T>] {
 		const a = ExtraAsyncIterator.withController<T>();
 		const b = ExtraAsyncIterator.withController<T>();
@@ -559,6 +600,14 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 		return [a.iterator, b.iterator];
 	}
 
+	public then(callback: () => unknown): ExtraAsyncIterator<T>
+	{
+		return ExtraAsyncIterator.from(async function* (this: ExtraAsyncIterator<T>) {
+			yield* this;
+			callback();
+		}.call(this));
+	}
+
 	public withEach(callback: (item: T) => void): ExtraAsyncIterator<T> {
 		return ExtraAsyncIterator.from(async function* (this: ExtraAsyncIterator<T>) {
 			for await (const item of this) {
@@ -567,9 +616,4 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 			}
 		}.call(this));
 	}
-
-	// TODO
-	// public then(callback: () => unknown): ExtraAsyncIterator<T>;
-	// public catch(callback: () => unknown): ExtraAsyncIterator<T>;
-	// public finally(callback: () => unknown): ExtraAsyncIterator<T>;
 }
