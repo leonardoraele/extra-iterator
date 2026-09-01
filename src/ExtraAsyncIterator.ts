@@ -378,13 +378,73 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 		return this.map(item => accumulator(acc, item));
 	}
 
-	// TODO Errors if the iterator does not emit a value within the specified duration
-	// public timeout(delayMs: number): ExtraAsyncIterator<T>;
-	// public timeout(delay: Temporal.Duration): ExtraAsyncIterator<T>;
+	public timeout(
+		duration: number | Temporal.Duration,
+		{ message = 'Async iterator timed out.' } = {},
+	): ExtraAsyncIterator<T> {
+		const durationMs = typeof duration === 'number' ? duration : duration.total({ unit: 'milliseconds' });
+		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
 
-	// TODO
-	// public throttle(delayMs: number): ExtraAsyncIterator<T>;
-	// public throttle(delay: Temporal.Duration): ExtraAsyncIterator<T>;
+		let timeoutId: number;
+
+		function stopTimer() {
+			clearTimeout(timeoutId);
+		}
+
+		function startTimer() {
+			timeoutId = setTimeout(() => {
+				controller.error(new Error(message));
+			}, durationMs);
+		}
+
+		startTimer();
+
+		this.forEach(item => {
+			controller.enqueue(item);
+			stopTimer();
+			startTimer();
+		}).then(() => {
+			controller.close();
+		}).catch(error => {
+			controller.error(error);
+		}).finally(() => {
+			stopTimer();
+		});
+
+		return iterator;
+	}
+
+	public throttle(delay: number | Temporal.Duration): ExtraAsyncIterator<T>
+	{
+		const delayMs = typeof delay === 'number' ? delay : delay.total({ unit: 'milliseconds' });
+		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
+
+		{
+			let blocked = false;
+			let timeoutId: number | undefined = undefined;
+			this.forEach(item => {
+				if (blocked) {
+					return;
+				}
+				controller.enqueue(item);
+				blocked = true;
+				timeoutId = setTimeout(() => {
+					blocked = false;
+					timeoutId = undefined;
+				}, delayMs);
+			}).then(() => {
+				controller.close();
+			}).catch(error => {
+				controller.error(error);
+			}).finally(() => {
+				if (timeoutId !== undefined) {
+					clearTimeout(timeoutId);
+				}
+			});
+		}
+
+		return iterator;
+	}
 
 	public unique(keyProvider: (item: T) => unknown = item => item): ExtraAsyncIterator<T> {
 		const seen = new Set<unknown>();
@@ -509,26 +569,7 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 	}
 
 	// TODO
-	// public whenDone(): Promise<void>;
-	// public whenError(): Promise<void>;
-	// public whenDoneOrError(): Promise<void>;
-
-	// private doneCallbacks?: ((value: unknown) => unknown)[];
-	// private errorCallbacks?: ((error: unknown) => unknown)[];
-
-	// public then(callback: () => unknown): ExtraAsyncIterator<T>
-	// {
-	// 	this.doneCallbacks ??= [];
-	// 	this.doneCallbacks.push(callback);
-	// 	return this;
-	// }
-
-	// public catch(callback: () => unknown): ExtraAsyncIterator<T>
-	// {
-	// 	this.errorCallbacks ??= [];
-	// 	this.errorCallbacks.push(callback);
-	// 	return this;
-	// }
-
+	// public then(callback: () => unknown): ExtraAsyncIterator<T>;
+	// public catch(callback: () => unknown): ExtraAsyncIterator<T>;
 	// public finally(callback: () => unknown): ExtraAsyncIterator<T>;
 }
