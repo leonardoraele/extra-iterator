@@ -24,8 +24,7 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 			errorEvent = undefined as string | undefined,
 			signal = undefined as AbortSignal | undefined,
 		} = {},
-	): ExtraAsyncIterator<unknown[]>
-	{
+	): ExtraAsyncIterator<unknown[]> {
 		const { iterator, controller } = ExtraAsyncIterator.withController<unknown[]>();
 		const aborter = new AbortController();
 
@@ -56,12 +55,16 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 		return iterator;
 	}
 
-	public static fromInterval({ signal = null as AbortSignal | null } = {}): ExtraAsyncIterator<void> {
+	public static fromInterval(
+		duration: number | Temporal.Duration,
+		{ signal = null as AbortSignal | null } = {},
+	): ExtraAsyncIterator<void> {
+		const durationMs = typeof duration === 'number' ? duration : duration.total({ unit: 'milliseconds' });
 		const { iterator, controller } = ExtraAsyncIterator.withController<void>();
 
 		const intervalId = setInterval(() => {
 			controller.enqueue();
-		}, 1000);
+		}, durationMs);
 
 		signal?.addEventListener('abort', () => {
 			clearInterval(intervalId);
@@ -84,6 +87,14 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 		return iterator;
 	}
 
+	public static merge<T>(...iterators: AsyncIterator<T>[]): ExtraAsyncIterator<T> {
+		const { iterator: merged, controller } = ExtraAsyncIterator.withController<T>();
+		Promise.all(iterators.map(iterator => iterator.forEach(item => controller.enqueue(item))))
+			.then(() => controller.close())
+			.catch(error => controller.error(error));
+		return merged;
+	}
+
 	public static withController<T>() {
 		let controller: ReadableStreamDefaultController<T>;
 		const stream = new ReadableStream<T>({ start: c => controller = c });
@@ -99,8 +110,7 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 	// OVERRIDES
 	// =================================================================================================================
 
-	public override drop(limit: number): ExtraAsyncIterator<T>
-	{
+	public override drop(limit: number): ExtraAsyncIterator<T> {
 		return ExtraAsyncIterator.from(super.drop(limit));
 	}
 
@@ -118,24 +128,119 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 			| Iterable<Promise<TNew>> | Iterator<Promise<TNew>>
 			| Promise<Iterable<Promise<TNew>>> | Promise<Iterator<Promise<TNew>>>
 			| AsyncIterable<TNew> | AsyncIterator<TNew>,
-	): ExtraAsyncIterator<TNew>
-	{
+	): ExtraAsyncIterator<TNew> {
 		return ExtraAsyncIterator.from(super.flatMap(mapper));
 	}
 
-	public override map<TNew>(mapper: (value: T) => TNew | Promise<TNew>): ExtraAsyncIterator<TNew>
-	{
+	public override map<TNew>(mapper: (value: T) => TNew | Promise<TNew>): ExtraAsyncIterator<TNew> {
 		return ExtraAsyncIterator.from(super.map(mapper));
 	}
 
-	public override take(count: number): ExtraAsyncIterator<T>
-	{
+	public override take(count: number): ExtraAsyncIterator<T> {
 		return ExtraAsyncIterator.from(super.take(count));
 	}
 
 	// =================================================================================================================
 	// TRANSFORMING METHODS
 	// =================================================================================================================
+
+	public chunk(count: number): ExtraAsyncIterator<T[]> {
+		return ExtraAsyncIterator.from(async function*(this: ExtraAsyncIterator<T>) {
+			let chunk: T[] = new Array(count);
+			for (let i = 0, result; result = await this.next(), !result.done && i < count; i = (i + 1) % count) {
+				chunk[i] = result.value;
+				if (i === count - 1) {
+					yield chunk;
+				}
+			}
+			yield chunk;
+		}.call(this));
+	}
+
+	public chunkBy(callback: (value: T) => unknown): ExtraAsyncIterator<T[]> {
+		return ExtraAsyncIterator.from(async function*(this: ExtraAsyncIterator<T>) {
+			let chunk: [T, ...T[]];
+			let chunkKey: unknown;
+
+			{
+				const result = await this.next();
+				if (result.done) {
+					return;
+				}
+				chunk = [result.value];
+				chunkKey = callback(result.value);
+			}
+
+			for await (const value of this) {
+				const nextKey = callback(value);
+				if (nextKey === chunkKey) {
+					chunk.push(value);
+				} else {
+					yield chunk;
+					chunk = [value];
+					chunkKey = nextKey;
+				}
+			}
+
+			yield chunk;
+		}.call(this));
+	}
+
+	public chunkWith(predicate: (lhs: T, rhs: T, chunk: [T, ...T[]]) => boolean): ExtraAsyncIterator<T[]> {
+		return ExtraAsyncIterator.from(async function*(this: ExtraAsyncIterator<T>) {
+			let chunk: [T, ...T[]];
+
+			{
+				const result = await this.next();
+				if (result.done) {
+					return;
+				}
+				chunk = [result.value];
+			}
+
+			for await (const value of this) {
+				if (predicate(chunk.at(-1)!, value, chunk)) {
+					chunk.push(value);
+				} else {
+					yield chunk;
+					chunk = [value];
+				}
+			}
+
+			yield chunk;
+		}.call(this));
+	}
+
+	public chunkInterval(durationMs: number): ExtraAsyncIterator<T[]>;
+	public chunkInterval(duration: Temporal.Duration): ExtraAsyncIterator<T[]>;
+	public chunkInterval(duration: number | Temporal.Duration): ExtraAsyncIterator<T[]> {
+		const durationMs = typeof duration === 'number' ? duration : duration.total({ unit: 'milliseconds' });
+		const { iterator, controller } = ExtraAsyncIterator.withController<T[]>();
+
+		let chunk: T[] = [];
+
+		const intervalId = setInterval(() => {
+			if (chunk.length > 0) {
+				controller.enqueue(chunk);
+				chunk = [];
+			}
+		}, durationMs);
+
+		this.forEach(item => {
+			chunk.push(item);
+		}).then(() => {
+			if (chunk.length > 0) {
+				controller.enqueue(chunk);
+				controller.close();
+			}
+		}).catch(error => {
+			controller.error(error);
+		}).finally(() => {
+			clearInterval(intervalId);
+		});
+
+		return iterator;
+	}
 
 	public compact(): ExtraAsyncIterator<Exclude<T, null|undefined>> {
 		const predicate = (value => value !== null && value !== undefined) as
@@ -145,13 +250,76 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 
 	public debounce(delayMs: number): ExtraAsyncIterator<T>;
 	public debounce(delay: Temporal.Duration): ExtraAsyncIterator<T>;
-	public debounce(delay: unknown): ExtraAsyncIterator<T> {
-		if (typeof delay === 'number') {
-			delay = Temporal.Duration.from({ milliseconds: delay });
+	public debounce(delay: number | Temporal.Duration): ExtraAsyncIterator<T> {
+		const delayMs = typeof delay === 'number' ? delay : delay.total({ unit: 'milliseconds' });
+		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
+		{
+			let queuedItem: T | undefined = undefined;
+			let timeoutId: number | undefined = undefined;
+			this.forEach(item => {
+				if (timeoutId !== undefined)
+					clearTimeout(timeoutId);
+				timeoutId = setTimeout(() => {
+					controller.enqueue(item);
+					timeoutId = undefined;
+					queuedItem = undefined;
+				}, delayMs);
+				queuedItem = item;
+			}).then(() => {
+				if (timeoutId !== undefined)
+					controller.enqueue(queuedItem!);
+				controller.close();
+			}).catch(error => {
+				controller.error(error);
+			}).finally(() => {
+				if (timeoutId !== undefined)
+					clearTimeout(timeoutId);
+			});
 		}
-		return ExtraAsyncIterator.from(async function*(this: ExtraAsyncIterator<T>) {
-			// TODO
-		}.call(this));
+		return iterator;
+	}
+
+	public delay(delayMs: number): ExtraAsyncIterator<T>;
+	public delay(delay: Temporal.Duration): ExtraAsyncIterator<T>;
+	public delay(delay: number | Temporal.Duration): ExtraAsyncIterator<T> {
+		const delayMs = typeof delay === 'number' ? delay : delay.total({ unit: 'milliseconds' });
+		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
+		let done = false;
+		this.forEach(item => {
+			setTimeout(() => {
+				if (!done) {
+					controller.enqueue(item);
+				}
+			}, delayMs);
+		}).then(() => {
+			controller.close();
+		}).catch(error => {
+			controller.error(error);
+		}).finally(() => {
+			done = true;
+		});
+		return iterator;
+	}
+
+	public delayWith(delayProvider: (item: T) => number | Temporal.Duration): ExtraAsyncIterator<T> {
+		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
+		let done = false;
+		this.forEach(item => {
+			const delay = delayProvider(item);
+			const delayMs = typeof delay === 'number' ? delay : delay.total({ unit: 'milliseconds' });
+			setTimeout(() => {
+				if (!done) {
+					controller.enqueue(item);
+				}
+			}, delayMs);
+		}).then(() => {
+			controller.close();
+		}).catch(error => {
+			controller.error(error);
+		}).finally(() => {
+			done = true;
+		});
+		return iterator;
 	}
 
 	public dropRepeats<K>(
@@ -187,7 +355,7 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 		});
 	}
 
-	flat({ arraylike = false } = {}): FlattenedExtraAsyncIterator<T> {
+	public flat({ arraylike = false } = {}): FlattenedExtraAsyncIterator<T> {
 		return this.flatMap(async value => {
 			value = await value;
 			if (typeof value === 'object' && value !== null) {
@@ -205,12 +373,100 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 		}) as any;
 	}
 
+	public scan<R>(accumulator: (acc: R, item: T) => R | Promise<R>, initialValue: R): ExtraAsyncIterator<R> {
+		let acc = initialValue;
+		return this.map(item => accumulator(acc, item));
+	}
+
+	// TODO Errors if the iterator does not emit a value within the specified duration
+	// public timeout(delayMs: number): ExtraAsyncIterator<T>;
+	// public timeout(delay: Temporal.Duration): ExtraAsyncIterator<T>;
+
+	// TODO
+	// public throttle(delayMs: number): ExtraAsyncIterator<T>;
+	// public throttle(delay: Temporal.Duration): ExtraAsyncIterator<T>;
+
+	public unique(keyProvider: (item: T) => unknown = item => item): ExtraAsyncIterator<T> {
+		const seen = new Set<unknown>();
+		return this.filter(item => {
+			const key = keyProvider(item);
+			if (seen.has(key)) {
+				return false;
+			}
+			seen.add(key);
+			return true;
+		});
+	}
+
 	// =================================================================================================================
 	// AGGREGATING METHODS
 	// =================================================================================================================
 
 	public count(): Promise<number> {
 		return this.reduce(count => count + 1, 0);
+	}
+
+	public async first(): Promise<T | undefined>;
+	public async first<U>(options: { default: U }): Promise<T | U>;
+	public async first<U>(options: { defaultComputed: () => U }): Promise<T | U>;
+	public async first(options?: { default?: unknown, defaultComputed?: () => unknown }): Promise<unknown> {
+		const { value, done } = await this.next();
+
+		if (!done) {
+			return value;
+		}
+
+		if (options && 'default' in options) {
+			return options.default;
+		}
+
+		if (options && 'defaultComputed' in options) {
+			return options.defaultComputed();
+		}
+
+		return undefined;
+	}
+
+	public async last(): Promise<T | undefined>;
+	public async last<U>(options: { default: U }): Promise<T | U>;
+	public async last<U>(options: { defaultComputed: () => U }): Promise<T | U>;
+	public async last(options?: { default?: unknown, defaultComputed?: () => unknown }): Promise<unknown> {
+		let lastValue;
+
+		{
+			const { value, done } = await this.next();
+			if (done) {
+				if (options) {
+					if ('default' in options) {
+						return options.default;
+					}
+					if ('defaultComputed' in options) {
+						return options.defaultComputed();
+					}
+				}
+				return undefined;
+			}
+			lastValue = value;
+		}
+
+		for (let result; result = await this.next(), !result.done;) {
+			lastValue = result.value;
+		}
+
+		return lastValue;
+	}
+
+	public async single(): Promise<T> {
+		const first = await this.next();
+		if (first.done) {
+			throw new Error("No elements in iterator");
+		}
+		const singleValue = first.value;
+		const second = await this.next();
+		if (!second.done) {
+			throw new Error("More than one element in iterator");
+		}
+		return singleValue;
 	}
 
 	public toStream(): ReadableStream<T> {
@@ -251,4 +507,28 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> {
 			}
 		}.call(this));
 	}
+
+	// TODO
+	// public whenDone(): Promise<void>;
+	// public whenError(): Promise<void>;
+	// public whenDoneOrError(): Promise<void>;
+
+	// private doneCallbacks?: ((value: unknown) => unknown)[];
+	// private errorCallbacks?: ((error: unknown) => unknown)[];
+
+	// public then(callback: () => unknown): ExtraAsyncIterator<T>
+	// {
+	// 	this.doneCallbacks ??= [];
+	// 	this.doneCallbacks.push(callback);
+	// 	return this;
+	// }
+
+	// public catch(callback: () => unknown): ExtraAsyncIterator<T>
+	// {
+	// 	this.errorCallbacks ??= [];
+	// 	this.errorCallbacks.push(callback);
+	// 	return this;
+	// }
+
+	// public finally(callback: () => unknown): ExtraAsyncIterator<T>;
 }
