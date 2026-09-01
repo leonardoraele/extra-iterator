@@ -1,5 +1,5 @@
 import { AsyncIterator } from 'async-iterator-helpers-ponyfill';
-import { ExtraAsyncIterator } from './ExtraAsyncIterator';
+import { ExtraAsyncIterator } from './ExtraAsyncIterator.js';
 
 export class AsyncIteratorSwitch<T> {
 	constructor(source: AsyncIterator<T>) {

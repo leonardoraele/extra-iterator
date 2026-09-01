@@ -484,7 +484,7 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
 		{
 			let queuedItem: T | undefined = undefined;
-			let timeoutId: number | undefined = undefined;
+			let timeoutId: NodeJS.Timeout | number | undefined = undefined;
 			this.forEach(item => {
 				if (timeoutId !== undefined)
 					clearTimeout(timeoutId);
@@ -689,7 +689,7 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 		const durationMs = typeof duration === 'number' ? duration : duration.total({ unit: 'milliseconds' });
 		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
 
-		let timeoutId: number;
+		let timeoutId: NodeJS.Timeout | number;
 
 		function stopTimer() {
 			clearTimeout(timeoutId);
@@ -732,7 +732,7 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 
 		{
 			let blocked = false;
-			let timeoutId: number | undefined = undefined;
+			let timeoutId: NodeJS.Timeout | number | undefined = undefined;
 			this.forEach(item => {
 				if (blocked) {
 					return;
