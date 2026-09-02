@@ -31,47 +31,48 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 	 * @param param2 An object containing optional parameters: closeEvent, errorEvent, and signal.
 	 * @returns An ExtraAsyncIterator that yields arrays of event arguments.
 	 */
-	public static fromEvents(
-		target: EventTarget,
-		event: string,
-		{
-			closeEvent = undefined as string | undefined,
-			errorEvent = undefined as string | undefined,
-			signal = undefined as AbortSignal | undefined,
-		} = {},
-	): ExtraAsyncIterator<unknown[]> {
-		const { iterator, controller } = ExtraAsyncIterator.withController<unknown[]>();
-		const aborter = new AbortController();
+	// TODO
+	// public static fromEvents(
+	// 	target: EventTarget,
+	// 	event: string,
+	// 	{
+	// 		closeEvent = undefined as string | undefined,
+	// 		errorEvent = undefined as string | undefined,
+	// 		signal = undefined as AbortSignal | undefined,
+	// 	} = {},
+	// ): ExtraAsyncIterator<unknown[]> {
+	// 	const { iterator, controller } = ExtraAsyncIterator.withController<unknown[]>();
+	// 	const aborter = new AbortController();
 
-		if (signal) {
-			signal.addEventListener('abort', () => {
-				controller.close();
-				aborter.abort();
-			});
-		} else {
-			signal = aborter.signal;
-		}
+	// 	if (signal) {
+	// 		signal.addEventListener('abort', () => {
+	// 			controller.close();
+	// 			aborter.abort();
+	// 		});
+	// 	} else {
+	// 		signal = aborter.signal;
+	// 	}
 
-		target.addEventListener(event, (...args: unknown[]) => {
-			controller.enqueue(args);
-		}, { signal });
+	// 	target.addEventListener(event, (...args: unknown[]) => {
+	// 		controller.enqueue(args);
+	// 	}, { signal });
 
-		if (closeEvent) {
-			target.addEventListener(closeEvent, () => {
-				controller.close();
-				aborter.abort();
-			}, { signal });
-		}
+	// 	if (closeEvent) {
+	// 		target.addEventListener(closeEvent, () => {
+	// 			controller.close();
+	// 			aborter.abort();
+	// 		}, { signal });
+	// 	}
 
-		if (errorEvent) {
-			target.addEventListener(errorEvent, error => {
-				controller.error(error);
-				aborter.abort();
-			}, { signal });
-		}
+	// 	if (errorEvent) {
+	// 		target.addEventListener(errorEvent, error => {
+	// 			controller.error(error);
+	// 			aborter.abort();
+	// 		}, { signal });
+	// 	}
 
-		return iterator;
-	}
+	// 	return iterator;
+	// }
 
 	/**
 	 * Creates an async iterator that yields a void value at regular intervals specified by the duration.
@@ -80,24 +81,25 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 	 * @param param1 An object containing optional parameters: signal.
 	 * @returns An ExtraAsyncIterator that yields a void value at each interval.
 	 */
-	public static fromInterval(
-		duration: number | Temporal.Duration,
-		{ signal = null as AbortSignal | null } = {},
-	): ExtraAsyncIterator<void> {
-		const durationMs = typeof duration === 'number' ? duration : duration.total({ unit: 'milliseconds' });
-		const { iterator, controller } = ExtraAsyncIterator.withController<void>();
+	// TODO
+	// public static fromInterval(
+	// 	duration: number | Temporal.Duration,
+	// 	{ signal = null as AbortSignal | null } = {},
+	// ): ExtraAsyncIterator<void> {
+	// 	const durationMs = typeof duration === 'number' ? duration : duration.total({ unit: 'milliseconds' });
+	// 	const { iterator, controller } = ExtraAsyncIterator.withController<void>();
 
-		const intervalId = setInterval(() => {
-			controller.enqueue();
-		}, durationMs);
+	// 	const intervalId = setInterval(() => {
+	// 		controller.enqueue();
+	// 	}, durationMs);
 
-		signal?.addEventListener('abort', () => {
-			clearInterval(intervalId);
-			controller.close();
-		});
+	// 	signal?.addEventListener('abort', () => {
+	// 		clearInterval(intervalId);
+	// 		controller.close();
+	// 	});
 
-		return iterator;
-	}
+	// 	return iterator;
+	// }
 
 	/**
 	 * Creates an async iterator that repeatedly calls {@link requestAnimationFrame} and, for each animation frame,
@@ -106,20 +108,21 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 	 * @param options.signal An optional AbortSignal to stop requesting animation frames and close the iterator.
 	 * @returns An ExtraAsyncIterator that yields the delta time for each animation frame.
 	 */
-	public static fromAnimationFrames(
-		{ signal = null as AbortSignal | null } = {},
-	): ExtraAsyncIterator<DOMHighResTimeStamp> {
-		const { iterator, controller } = ExtraAsyncIterator.withController<DOMHighResTimeStamp>();
-		globalThis.requestAnimationFrame(function tick(delta: DOMHighResTimeStamp) {
-			if (signal?.aborted) {
-				controller.close();
-				return;
-			}
-			controller.enqueue(delta);
-			globalThis.requestAnimationFrame(tick);
-		});
-		return iterator;
-	}
+	// TODO
+	// public static fromAnimationFrames(
+	// 	{ signal = null as AbortSignal | null } = {},
+	// ): ExtraAsyncIterator<DOMHighResTimeStamp> {
+	// 	const { iterator, controller } = ExtraAsyncIterator.withController<DOMHighResTimeStamp>();
+	// 	globalThis.requestAnimationFrame(function tick(delta: DOMHighResTimeStamp) {
+	// 		if (signal?.aborted) {
+	// 			controller.close();
+	// 			return;
+	// 		}
+	// 		controller.enqueue(delta);
+	// 		globalThis.requestAnimationFrame(tick);
+	// 	});
+	// 	return iterator;
+	// }
 
 	/**
 	 * Creates an async iterator that combines all the other async iterators passed as arguments. The returned iterator
@@ -128,13 +131,14 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 	 * @param iterators The async iterators to merge.
 	 * @returns An ExtraAsyncIterator that yields values from all the provided async iterators.
 	 */
-	public static merge<T>(...iterators: AsyncIterator<T>[]): ExtraAsyncIterator<T> {
-		const { iterator: merged, controller } = ExtraAsyncIterator.withController<T>();
-		Promise.all(iterators.map(iterator => iterator.forEach(item => controller.enqueue(item))))
-			.then(() => controller.close())
-			.catch(error => controller.error(error));
-		return merged;
-	}
+	// TODO
+	// public static merge<T>(...iterators: AsyncIterator<T>[]): ExtraAsyncIterator<T> {
+	// 	const { iterator: merged, controller } = ExtraAsyncIterator.withController<T>();
+	// 	Promise.all(iterators.map(iterator => iterator.forEach(item => controller.enqueue(item))))
+	// 		.then(() => controller.close())
+	// 		.catch(error => controller.error(error));
+	// 	return merged;
+	// }'
 
 	/**
 	 * Creates an async iterator using a subscribe function. The passed subscribe function is called once with a
@@ -147,20 +151,21 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 	 * @param options.signal An optional AbortSignal to stop receiving events and close the iterator.
 	 * @returns An ExtraAsyncIterator that yields the values received from the subscribe function.
 	 */
-	public static subscribe<T extends unknown[]>(
-		subscribe: SubscribeFn<T>,
-		{ signal = null as AbortSignal | null } = {},
-	): ExtraAsyncIterator<T> {
-		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
-		const unsubscribe = subscribe((...args: T) => {
-			controller.enqueue(args);
-		});
-		signal?.addEventListener('abort', () => iterator.return());
-		return iterator.then(() => {
-			unsubscribe();
-			controller.close();
-		});
-	}
+	// TODO
+	// public static subscribe<T extends unknown[]>(
+	// 	subscribe: SubscribeFn<T>,
+	// 	{ signal = null as AbortSignal | null } = {},
+	// ): ExtraAsyncIterator<T> {
+	// 	const { iterator, controller } = ExtraAsyncIterator.withController<T>();
+	// 	const unsubscribe = subscribe((...args: T) => {
+	// 		controller.enqueue(args);
+	// 	});
+	// 	signal?.addEventListener('abort', () => iterator.return());
+	// 	return iterator.then(() => {
+	// 		unsubscribe();
+	// 		controller.close();
+	// 	});
+	// }
 
 	/**
 	 * Creates an async iterator and returns it along with its controller, allowing you to manually push data to the
@@ -423,36 +428,37 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 	 * @param duration The time interval for chunking the async iterator. Can be a number (milliseconds) or a Temporal.Duration.
 	 * @returns An async iterator that yields arrays of elements collected within the specified time interval.
 	 */
-	public chunkInterval(durationMs: number): ExtraAsyncIterator<T[]>;
-	public chunkInterval(duration: Temporal.Duration): ExtraAsyncIterator<T[]>;
-	public chunkInterval(duration: number | Temporal.Duration): ExtraAsyncIterator<T[]> {
-		const durationMs = typeof duration === 'number' ? duration : duration.total({ unit: 'milliseconds' });
-		const { iterator, controller } = ExtraAsyncIterator.withController<T[]>();
+	// TODO
+	// public chunkInterval(durationMs: number): ExtraAsyncIterator<T[]>;
+	// public chunkInterval(duration: Temporal.Duration): ExtraAsyncIterator<T[]>;
+	// public chunkInterval(duration: number | Temporal.Duration): ExtraAsyncIterator<T[]> {
+	// 	const durationMs = typeof duration === 'number' ? duration : duration.total({ unit: 'milliseconds' });
+	// 	const { iterator, controller } = ExtraAsyncIterator.withController<T[]>();
 
-		let chunk: T[] = [];
+	// 	let chunk: T[] = [];
 
-		const intervalId = setInterval(() => {
-			if (chunk.length > 0) {
-				controller.enqueue(chunk);
-				chunk = [];
-			}
-		}, durationMs);
+	// 	const intervalId = setInterval(() => {
+	// 		if (chunk.length > 0) {
+	// 			controller.enqueue(chunk);
+	// 			chunk = [];
+	// 		}
+	// 	}, durationMs);
 
-		this.forEach(item => {
-			chunk.push(item);
-		}).then(() => {
-			if (chunk.length > 0) {
-				controller.enqueue(chunk);
-				controller.close();
-			}
-		}).catch(error => {
-			controller.error(error);
-		}).finally(() => {
-			clearInterval(intervalId);
-		});
+	// 	this.forEach(item => {
+	// 		chunk.push(item);
+	// 	}).then(() => {
+	// 		if (chunk.length > 0) {
+	// 			controller.enqueue(chunk);
+	// 			controller.close();
+	// 		}
+	// 	}).catch(error => {
+	// 		controller.error(error);
+	// 	}).finally(() => {
+	// 		clearInterval(intervalId);
+	// 	});
 
-		return iterator;
-	}
+	// 	return iterator;
+	// }
 
 	/**
 	 * Removes all `null` and `undefined` values from the async iterator.
@@ -477,36 +483,37 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 	 * @param delayMs The debounce delay in milliseconds.
 	 * @returns An async iterator that yields debounced items.
 	 */
-	public debounce(delayMs: number): ExtraAsyncIterator<T>;
-	public debounce(delay: Temporal.Duration): ExtraAsyncIterator<T>;
-	public debounce(delay: number | Temporal.Duration): ExtraAsyncIterator<T> {
-		const delayMs = typeof delay === 'number' ? delay : delay.total({ unit: 'milliseconds' });
-		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
-		{
-			let queuedItem: T | undefined = undefined;
-			let timeoutId: NodeJS.Timeout | number | undefined = undefined;
-			this.forEach(item => {
-				if (timeoutId !== undefined)
-					clearTimeout(timeoutId);
-				timeoutId = setTimeout(() => {
-					controller.enqueue(item);
-					timeoutId = undefined;
-					queuedItem = undefined;
-				}, delayMs);
-				queuedItem = item;
-			}).then(() => {
-				if (timeoutId !== undefined)
-					controller.enqueue(queuedItem!);
-				controller.close();
-			}).catch(error => {
-				controller.error(error);
-			}).finally(() => {
-				if (timeoutId !== undefined)
-					clearTimeout(timeoutId);
-			});
-		}
-		return iterator;
-	}
+	// TODO
+	// public debounce(delayMs: number): ExtraAsyncIterator<T>;
+	// public debounce(delay: Temporal.Duration): ExtraAsyncIterator<T>;
+	// public debounce(delay: number | Temporal.Duration): ExtraAsyncIterator<T> {
+	// 	const delayMs = typeof delay === 'number' ? delay : delay.total({ unit: 'milliseconds' });
+	// 	const { iterator, controller } = ExtraAsyncIterator.withController<T>();
+	// 	{
+	// 		let queuedItem: T | undefined = undefined;
+	// 		let timeoutId: NodeJS.Timeout | number | undefined = undefined;
+	// 		this.forEach(item => {
+	// 			if (timeoutId !== undefined)
+	// 				clearTimeout(timeoutId);
+	// 			timeoutId = setTimeout(() => {
+	// 				controller.enqueue(item);
+	// 				timeoutId = undefined;
+	// 				queuedItem = undefined;
+	// 			}, delayMs);
+	// 			queuedItem = item;
+	// 		}).then(() => {
+	// 			if (timeoutId !== undefined)
+	// 				controller.enqueue(queuedItem!);
+	// 			controller.close();
+	// 		}).catch(error => {
+	// 			controller.error(error);
+	// 		}).finally(() => {
+	// 			if (timeoutId !== undefined)
+	// 				clearTimeout(timeoutId);
+	// 		});
+	// 	}
+	// 	return iterator;
+	// }
 
 	/**
 	 * Delays the emission of each item from the async iterator by the specified delay interval.
@@ -514,27 +521,28 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 	 * @param delayMs The delay in milliseconds.
 	 * @returns An async iterator that yields items after the specified delay.
 	 */
-	public delay(delayMs: number): ExtraAsyncIterator<T>;
-	public delay(delay: Temporal.Duration): ExtraAsyncIterator<T>;
-	public delay(delay: number | Temporal.Duration): ExtraAsyncIterator<T> {
-		const delayMs = typeof delay === 'number' ? delay : delay.total({ unit: 'milliseconds' });
-		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
-		let done = false;
-		this.forEach(item => {
-			setTimeout(() => {
-				if (!done) {
-					controller.enqueue(item);
-				}
-			}, delayMs);
-		}).then(() => {
-			controller.close();
-		}).catch(error => {
-			controller.error(error);
-		}).finally(() => {
-			done = true;
-		});
-		return iterator;
-	}
+	// TODO
+	// public delay(delayMs: number): ExtraAsyncIterator<T>;
+	// public delay(delay: Temporal.Duration): ExtraAsyncIterator<T>;
+	// public delay(delay: number | Temporal.Duration): ExtraAsyncIterator<T> {
+	// 	const delayMs = typeof delay === 'number' ? delay : delay.total({ unit: 'milliseconds' });
+	// 	const { iterator, controller } = ExtraAsyncIterator.withController<T>();
+	// 	let done = false;
+	// 	this.forEach(item => {
+	// 		setTimeout(() => {
+	// 			if (!done) {
+	// 				controller.enqueue(item);
+	// 			}
+	// 		}, delayMs);
+	// 	}).then(() => {
+	// 		controller.close();
+	// 	}).catch(error => {
+	// 		controller.error(error);
+	// 	}).finally(() => {
+	// 		done = true;
+	// 	});
+	// 	return iterator;
+	// }
 
 	/**
 	 * Delays the emission of each item from the async iterator. The delay for each item is determined by invoking the
@@ -549,26 +557,27 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 	 * {@link Temporal.Duration}.
 	 * @returns An async iterator that yields items after the specified delay.
 	 */
-	public delayWith(delayProvider: (item: T) => number | Temporal.Duration): ExtraAsyncIterator<T> {
-		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
-		let done = false;
-		this.forEach(item => {
-			const delay = delayProvider(item);
-			const delayMs = typeof delay === 'number' ? delay : delay.total({ unit: 'milliseconds' });
-			setTimeout(() => {
-				if (!done) {
-					controller.enqueue(item);
-				}
-			}, delayMs);
-		}).then(() => {
-			controller.close();
-		}).catch(error => {
-			controller.error(error);
-		}).finally(() => {
-			done = true;
-		});
-		return iterator;
-	}
+	// TODO
+	// public delayWith(delayProvider: (item: T) => number | Temporal.Duration): ExtraAsyncIterator<T> {
+	// 	const { iterator, controller } = ExtraAsyncIterator.withController<T>();
+	// 	let done = false;
+	// 	this.forEach(item => {
+	// 		const delay = delayProvider(item);
+	// 		const delayMs = typeof delay === 'number' ? delay : delay.total({ unit: 'milliseconds' });
+	// 		setTimeout(() => {
+	// 			if (!done) {
+	// 				controller.enqueue(item);
+	// 			}
+	// 		}, delayMs);
+	// 	}).then(() => {
+	// 		controller.close();
+	// 	}).catch(error => {
+	// 		controller.error(error);
+	// 	}).finally(() => {
+	// 		done = true;
+	// 	});
+	// 	return iterator;
+	// }
 
 	/**
 	 * Drops consecutive repeated items from the async iterator.
@@ -682,41 +691,42 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 	 * @param options.message The error message to be used if the timeout is exceeded.
 	 * @returns A new async iterator that enforces the specified timeout for each item.
 	 */
-	public timeout(
-		duration: number | Temporal.Duration,
-		{ message = 'Async iterator timed out.' } = {},
-	): ExtraAsyncIterator<T> {
-		const durationMs = typeof duration === 'number' ? duration : duration.total({ unit: 'milliseconds' });
-		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
+	// TODO
+	// public timeout(
+	// 	duration: number | Temporal.Duration,
+	// 	{ message = 'Async iterator timed out.' } = {},
+	// ): ExtraAsyncIterator<T> {
+	// 	const durationMs = typeof duration === 'number' ? duration : duration.total({ unit: 'milliseconds' });
+	// 	const { iterator, controller } = ExtraAsyncIterator.withController<T>();
 
-		let timeoutId: NodeJS.Timeout | number;
+	// 	let timeoutId: NodeJS.Timeout | number;
 
-		function stopTimer() {
-			clearTimeout(timeoutId);
-		}
+	// 	function stopTimer() {
+	// 		clearTimeout(timeoutId);
+	// 	}
 
-		function startTimer() {
-			timeoutId = setTimeout(() => {
-				controller.error(new Error(message));
-			}, durationMs);
-		}
+	// 	function startTimer() {
+	// 		timeoutId = setTimeout(() => {
+	// 			controller.error(new Error(message));
+	// 		}, durationMs);
+	// 	}
 
-		startTimer();
+	// 	startTimer();
 
-		this.forEach(item => {
-			controller.enqueue(item);
-			stopTimer();
-			startTimer();
-		}).then(() => {
-			controller.close();
-		}).catch(error => {
-			controller.error(error);
-		}).finally(() => {
-			stopTimer();
-		});
+	// 	this.forEach(item => {
+	// 		controller.enqueue(item);
+	// 		stopTimer();
+	// 		startTimer();
+	// 	}).then(() => {
+	// 		controller.close();
+	// 	}).catch(error => {
+	// 		controller.error(error);
+	// 	}).finally(() => {
+	// 		stopTimer();
+	// 	});
 
-		return iterator;
-	}
+	// 	return iterator;
+	// }
 
 	/**
 	 * Slows down the production of items in the async iterator by dropping items that are produced too quickly after
@@ -725,37 +735,38 @@ export class ExtraAsyncIterator<T> extends AsyncIterator<T> implements AsyncIter
 	 * @param delay The delay duration between each item. Items produced during the delay are dropped.
 	 * @returns A new async iterator that enforces the specified delay between items.
 	 */
-	public throttle(delay: number | Temporal.Duration): ExtraAsyncIterator<T>
-	{
-		const delayMs = typeof delay === 'number' ? delay : delay.total({ unit: 'milliseconds' });
-		const { iterator, controller } = ExtraAsyncIterator.withController<T>();
+	// TODO
+	// public throttle(delay: number | Temporal.Duration): ExtraAsyncIterator<T>
+	// {
+	// 	const delayMs = typeof delay === 'number' ? delay : delay.total({ unit: 'milliseconds' });
+	// 	const { iterator, controller } = ExtraAsyncIterator.withController<T>();
 
-		{
-			let blocked = false;
-			let timeoutId: NodeJS.Timeout | number | undefined = undefined;
-			this.forEach(item => {
-				if (blocked) {
-					return;
-				}
-				controller.enqueue(item);
-				blocked = true;
-				timeoutId = setTimeout(() => {
-					blocked = false;
-					timeoutId = undefined;
-				}, delayMs);
-			}).then(() => {
-				controller.close();
-			}).catch(error => {
-				controller.error(error);
-			}).finally(() => {
-				if (timeoutId !== undefined) {
-					clearTimeout(timeoutId);
-				}
-			});
-		}
+	// 	{
+	// 		let blocked = false;
+	// 		let timeoutId: NodeJS.Timeout | number | undefined = undefined;
+	// 		this.forEach(item => {
+	// 			if (blocked) {
+	// 				return;
+	// 			}
+	// 			controller.enqueue(item);
+	// 			blocked = true;
+	// 			timeoutId = setTimeout(() => {
+	// 				blocked = false;
+	// 				timeoutId = undefined;
+	// 			}, delayMs);
+	// 		}).then(() => {
+	// 			controller.close();
+	// 		}).catch(error => {
+	// 			controller.error(error);
+	// 		}).finally(() => {
+	// 			if (timeoutId !== undefined) {
+	// 				clearTimeout(timeoutId);
+	// 			}
+	// 		});
+	// 	}
 
-		return iterator;
-	}
+	// 	return iterator;
+	// }
 
 	/**
 	 * Returns a new async iterator that yields only unique items. You can optionally provide a `keyProvider` function
